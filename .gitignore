@@ -1,0 +1,8 @@
+#arquivos normais
+model/
+resultados_dataset/
+STARCOP/
+STARCOP_mini/
+venv
+#arquivo zip
+STARCOP_mini.zip
