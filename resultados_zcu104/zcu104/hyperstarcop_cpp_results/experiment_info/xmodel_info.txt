@@ -1,0 +1,70 @@
+{
+    "subgraphs":[
+        {
+            "index":0,
+            "name":"subgraph_Unet__input_0",
+            "device":"USER"
+        },
+        {
+            "index":1,
+            "name":"subgraph_Unet__Unet_MobileNetV2Encoder_encoder__Conv2dNormActivation_features__Conv2dNormActivation_0__Conv2d_0__ret_11",
+            "device":"DPU",
+            "fingerprint":"0x101000056010407",
+            "DPU Arch":"DPUCZDX8G_ISA1_B4096",
+            "workload":26851532800,
+            "input_tensor":[
+                {
+                    "index":0,
+                    "name":"Unet__input_0_fix",
+                    "shape":[
+                        1,
+                        512,
+                        512,
+                        4
+                    ],
+                    "fixpos":5
+                }
+            ],
+            "output_tensor":[
+                {
+                    "index":0,
+                    "name":"Unet__Unet_SegmentationHead_segmentation_head__Conv2d_0__ret_fix",
+                    "shape":[
+                        1,
+                        512,
+                        512,
+                        1
+                    ],
+                    "fixpos":2
+                }
+            ],
+            "reg info":[
+                {
+                    "name":"REG_0",
+                    "context type":"CONST",
+                    "size":6959104
+                },
+                {
+                    "name":"REG_1",
+                    "context type":"WORKSPACE",
+                    "size":33398784
+                },
+                {
+                    "name":"REG_2",
+                    "context type":"DATA_LOCAL_INPUT",
+                    "size":1050640
+                },
+                {
+                    "name":"REG_3",
+                    "context type":"DATA_LOCAL_OUTPUT",
+                    "size":262144
+                }
+            ]
+        },
+        {
+            "index":2,
+            "name":"subgraph_Unet__Unet_SegmentationHead_segmentation_head__Conv2d_0__ret_fix_",
+            "device":"CPU"
+        }
+    ]
+}

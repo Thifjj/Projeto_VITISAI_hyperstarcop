@@ -1,0 +1,180 @@
+
+============================================================
+HYPERSTARCOP - ZCU104 - VART C++
+============================================================
+XModel : /home/root/hyperstarcop.xmodel
+Dataset: /home/root/STARCOP_mini
+DPU subgraph: subgraph_Unet__Unet_MobileNetV2Encoder_encoder__Conv2dNormActivation_features__Conv2dNormActivation_0__Conv2d_0__ret_11
+
+Input : Unet__input_0_fix [1,512,512,4]
+Output: Unet__Unet_SegmentationHead_segmentation_head__Conv2d_0__ret_fix [1,512,512,1]
+Input fix  : 5 scale=32
+Output fix : 2 scale=0.25
+Test images: 9
+
+============================================================
+VALIDATION - SAME METRICS AS ORIGINAL MODEL
+============================================================
+
+[1/9] ang20191018t144405_r2674_c436_w151_h151
+  TP=2172 FP=449 FN=999 TN=258524
+  Precision=0.8287 Recall=0.6850 F1=0.7500 IoU=0.6000 Accuracy=0.9945
+
+[2/9] ang20191018t163108_r14851_c525_w151_h151
+  TP=2893 FP=258 FN=379 TN=258614
+  Precision=0.9181 Recall=0.8842 F1=0.9008 IoU=0.8195 Accuracy=0.9976
+
+[3/9] ang20191018t141549_r3900_c244_w151_h151
+  TP=271 FP=161 FN=89 TN=261623
+  Precision=0.6273 Recall=0.7528 F1=0.6843 IoU=0.5202 Accuracy=0.9990
+
+[4/9] ang20191025t165545_r6573_c24_w151_h151
+  TP=6330 FP=909 FN=423 TN=254482
+  Precision=0.8744 Recall=0.9374 F1=0.9048 IoU=0.8262 Accuracy=0.9949
+
+[5/9] ang20191018t190719_r2696_c420_w151_h151
+  TP=3214 FP=213 FN=886 TN=257831
+  Precision=0.9378 Recall=0.7839 F1=0.8540 IoU=0.7452 Accuracy=0.9958
+
+[6/9] ang20191021t191828_r4300_c359_w151_h151
+  TP=9157 FP=768 FN=182 TN=252037
+  Precision=0.9226 Recall=0.9805 F1=0.9507 IoU=0.9060 Accuracy=0.9964
+
+[7/9] ang20191018t181457_r4349_c389_w151_h151
+  TP=970 FP=367 FN=38 TN=260769
+  Precision=0.7255 Recall=0.9623 F1=0.8273 IoU=0.7055 Accuracy=0.9985
+
+[8/9] ang20191018t165503_r2660_c460_w151_h151
+  TP=13288 FP=736 FN=475 TN=247645
+  Precision=0.9475 Recall=0.9655 F1=0.9564 IoU=0.9165 Accuracy=0.9954
+
+[9/9] ang20191018t190719_r1941_c33_w151_h151
+  TP=1277 FP=64 FN=734 TN=260069
+  Precision=0.9523 Recall=0.6350 F1=0.7619 IoU=0.6154 Accuracy=0.9970
+
+============================================================
+GLOBAL RESULT - ALL PIXELS
+============================================================
+TP=39572 FP=3925 FN=4205 TN=2311594
+Precision: 0.909764
+Recall   : 0.903945
+F1       : 0.906845
+IoU      : 0.829567
+Accuracy : 0.996554
+
+MEAN PER IMAGE
+Precision: 0.859369
+Recall   : 0.842942
+F1       : 0.843366
+IoU      : 0.739378
+Accuracy : 0.996554
+
+============================================================
+DOCUMENTED ORIGINAL FP32 REFERENCE
+============================================================
+TP=40310 FP=4847 FN=3467 TN=2310672
+Precision=0.892663 Recall=0.920803 F1=0.906515 IoU=0.829014 Accuracy=0.996476
+
+============================================================
+MODEL ONLY BENCHMARK
+Timed region: execute_async + wait ONLY
+============================================================
+
+============================================================
+MODEL ONLY
+============================================================
+Samples: 100
+
+LATENCY (ms)
+  Average : 37.7762
+  Min     : 37.7489
+  Max     : 37.8631
+  P95     : 37.8335
+  P99     : 37.8476
+
+FPS
+  Average : 26.4717
+  Min     : 26.4109
+  Max     : 26.4909
+  P95(*)  : 26.4316
+  P99(*)  : 26.4217
+  (*) derived from P95/P99 latency
+
+============================================================
+END-TO-END BENCHMARK
+TIFF -> preprocess -> INT8 -> DPU -> probability -> mask
+============================================================
+
+============================================================
+END TO END
+============================================================
+Samples: 45
+
+LATENCY (ms)
+  Average : 207.4260
+  Min     : 191.3070
+  Max     : 232.6126
+  P95     : 232.5109
+  P99     : 232.5909
+
+FPS
+  Average : 4.8210
+  Min     : 4.2990
+  Max     : 5.2272
+  P95(*)  : 4.3009
+  P99(*)  : 4.2994
+  (*) derived from P95/P99 latency
+
+
+============================================================
+FINAL SUMMARY
+============================================================
+
+SEGMENTATION
+Precision = 0.909764
+Recall    = 0.903945
+F1        = 0.906845
+IoU       = 0.829567
+Accuracy  = 0.996554
+
+MODEL ONLY
+Average FPS = 26.4717
+Min FPS     = 26.4109
+Max FPS     = 26.4909
+P95 FPS     = 26.4316
+P99 FPS     = 26.4217
+Avg latency = 37.7762 ms
+Min latency = 37.7489 ms
+Max latency = 37.8631 ms
+P95 latency = 37.8335 ms
+P99 latency = 37.8476 ms
+
+END TO END
+Average FPS = 4.8210
+Min FPS     = 4.2990
+Max FPS     = 5.2272
+P95 FPS     = 4.3009
+P99 FPS     = 4.2994
+Avg latency = 207.4260 ms
+Min latency = 191.3070 ms
+Max latency = 232.6126 ms
+P95 latency = 232.5109 ms
+P99 latency = 232.5909 ms
+
+Results saved at:
+/home/root/hyperstarcop_cpp_results
+
+Main files:
+  metricas_por_imagem.csv
+  metricas_globais.csv
+  comparacao_referencia_original.csv
+  benchmark_summary.csv
+  benchmark_samples.csv
+  metricas_globais.png
+  metricas_media_imagens.png
+  model_only_latency.png
+  model_only_fps.png
+  end_to_end_latency.png
+  end_to_end_fps.png
+  throughput_average_fps.png
+  figuras_por_imagem/*.png

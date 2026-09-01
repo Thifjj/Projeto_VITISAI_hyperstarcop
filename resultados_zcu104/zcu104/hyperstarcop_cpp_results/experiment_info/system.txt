@@ -1,0 +1,6 @@
+Linux xilinx-zcu104-20222 5.15.36-xilinx-v2022.2 #1 SMP Mon Oct 3 07:50:07 UTC 2022 aarch64 aarch64 aarch64 GNU/Linux
+ID=petalinux
+NAME="PetaLinux"
+VERSION="2022.2_release_S10071807 (honister)"
+VERSION_ID=2022.2_release_s10071807
+PRETTY_NAME="PetaLinux 2022.2_release_S10071807 (honister)"

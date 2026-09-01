@@ -1,0 +1,2 @@
+num_imagens,TP,FP,FN,TN,precision_global,recall_global,f1_global,iou_global,accuracy_global,precision_media,recall_media,f1_media,iou_media,accuracy_media
+9,39572,3925,4205,2311594,0.909763891763,0.903944993947,0.906845108509,0.82956689447,0.996554056803,0.859369059884,0.84294173051,0.843365844764,0.739378141865,0.996554056803

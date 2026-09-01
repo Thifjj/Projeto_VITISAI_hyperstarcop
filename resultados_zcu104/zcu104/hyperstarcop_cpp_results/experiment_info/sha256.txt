@@ -1,0 +1,3 @@
+711d9b2ad4edc534c77334e51bcb8ac54e6374aafa12d554502974ab49ea7324  /home/root/hyperstarcop.xmodel
+4d08f1e2e5b989324937f8503022aa3b1950a411b84470340bed1bbe4249efa7  /home/root/hyperstarcop_benchmark
+b1b33be0e685912789af1f196b05aa940dc74854da422b2b597652cc710c9e1f  /home/root/hyperstarcop_zcu104_benchmark.cpp
