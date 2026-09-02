@@ -17,3 +17,4 @@ wandb==0.29.0
 fsspec==2026.7.0
 gdown==6.1.0
 huggingface-hub==1.29.0
+starcop==0.1.0
