@@ -1,0 +1,125 @@
+============================================================
+HYPERSTARCOP ZCU104 OPTIMIZED BENCHMARK
+============================================================
+Batch: 1 ALWAYS
+Profile: baseline
+Dataset images: 9
+Runners: 1
+Pre workers: 1
+Post workers: 1
+Slots/runner: 1
+Pin: no
+Input  : [1,512,512,4] INT8 fix=5
+Output : [1,512,512,1] INT8 fix=2
+[VAL 1/9] ang20191018t144405_r2674_c436_w151_h151 F1=0.7500 IoU=0.6000
+[VAL 2/9] ang20191018t163108_r14851_c525_w151_h151 F1=0.9008 IoU=0.8195
+[VAL 3/9] ang20191018t141549_r3900_c244_w151_h151 F1=0.6843 IoU=0.5202
+[VAL 4/9] ang20191025t165545_r6573_c24_w151_h151 F1=0.9048 IoU=0.8262
+[VAL 5/9] ang20191018t190719_r2696_c420_w151_h151 F1=0.8540 IoU=0.7452
+[VAL 6/9] ang20191021t191828_r4300_c359_w151_h151 F1=0.9507 IoU=0.9060
+[VAL 7/9] ang20191018t181457_r4349_c389_w151_h151 F1=0.8273 IoU=0.7055
+[VAL 8/9] ang20191018t165503_r2660_c460_w151_h151 F1=0.9564 IoU=0.9165
+[VAL 9/9] ang20191018t190719_r1941_c33_w151_h151 F1=0.7619 IoU=0.6154
+
+VALIDATION GLOBAL
+Precision=0.9098 Recall=0.9039 F1=0.9068 IoU=0.8296 Accuracy=0.9966
+
+============================================================
+baseline_model_only
+============================================================
+batch              = 1
+runners            = 1
+pre_workers        = 0
+post_workers       = 0
+slots_per_runner   = 1
+completed          = 100
+wall_s             = 3.890816
+THROUGHPUT FPS     = 25.701550
+
+FPS EQUIVALENT FROM PER-JOB LATENCY
+ average = 25.701850
+ min     = 25.589597
+ max     = 25.726239
+ p95     = 25.675485
+ p99     = 25.649665
+
+LATENCY ms
+ mean   = 38.907705
+ median = 38.903170
+ min    = 38.870820
+ max    = 39.078380
+ p90    = 38.931880
+ p95    = 38.947657
+ p99    = 38.986864
+ stddev = 0.026123
+ CV     = 0.000671
+ jitter p99-p50 = 0.083694 ms
+
+DPU STAGE ms
+ mean = 38.907705
+ p95  = 38.947657
+ p99  = 38.986864
+
+INTER-COMPLETION ms
+ mean = 38.908123
+ p95  = 38.948347
+ p99  = 38.988386
+OUTPUT-CADENCE FPS
+ average(system wall) = 25.701550
+ min = 25.588988
+ max = 25.725954
+ p95 = 25.675031
+ p99 = 25.648664
+
+============================================================
+baseline_end_to_end
+============================================================
+batch              = 1
+runners            = 1
+pre_workers        = 1
+post_workers       = 1
+slots_per_runner   = 1
+completed          = 45
+wall_s             = 9.256706
+THROUGHPUT FPS     = 4.861340
+
+FPS EQUIVALENT FROM PER-JOB LATENCY
+ average = 4.861356
+ min     = 4.331561
+ max     = 5.279029
+ p95     = 4.335119
+ p99     = 4.332769
+
+LATENCY ms
+ mean   = 205.703908
+ median = 199.962010
+ min    = 189.428770
+ max    = 230.863660
+ p90    = 227.587604
+ p95    = 230.674198
+ p99    = 230.799314
+ stddev = 12.697732
+ CV     = 0.061728
+ jitter p99-p50 = 30.837304 ms
+
+DPU STAGE ms
+ mean = 39.152717
+ p95  = 39.192726
+ p99  = 39.209017
+
+PREPROCESS mean = 147.403327 ms
+POSTPROCESS mean = 19.119786 ms
+
+INTER-COMPLETION ms
+ mean = 205.871912
+ p95  = 230.676165
+ p99  = 230.801431
+OUTPUT-CADENCE FPS
+ average(system wall) = 4.861340
+ min = 4.331550
+ max = 5.279017
+ p95 = 4.335082
+ p99 = 4.332729
+
+Results saved to:
+/home/root/hyperstarcop_sweep_results/runs/00_baseline__baseline__r1_pre1_post1_spr1_nopin__rep1__n90

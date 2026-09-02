@@ -1,0 +1,63 @@
+============================================================
+HYPERSTARCOP ZCU104 OPTIMIZED BENCHMARK
+============================================================
+Batch: 1 ALWAYS
+Profile: max-model-only
+Dataset images: 9
+Runners: 2
+Pre workers: 1
+Post workers: 1
+Slots/runner: 1
+Pin: yes
+Input  : [1,512,512,4] INT8 fix=5
+Output : [1,512,512,1] INT8 fix=2
+
+============================================================
+max_model_only_throughput
+============================================================
+batch              = 1
+runners            = 2
+pre_workers        = 0
+post_workers       = 0
+slots_per_runner   = 1
+completed          = 90
+wall_s             = 1.812719
+THROUGHPUT FPS     = 49.649169
+
+FPS EQUIVALENT FROM PER-JOB LATENCY
+ average = 24.860255
+ min     = 23.543161
+ max     = 25.894996
+ p95     = 23.863808
+ p99     = 23.572273
+
+LATENCY ms
+ mean   = 40.224849
+ median = 39.846895
+ min    = 38.617500
+ max    = 42.475180
+ p90    = 41.807969
+ p95    = 41.904460
+ p99    = 42.422723
+ stddev = 1.057514
+ CV     = 0.026290
+ jitter p99-p50 = 2.575828 ms
+
+DPU STAGE ms
+ mean = 40.224849
+ p95  = 41.904460
+ p99  = 42.422723
+
+INTER-COMPLETION ms
+ mean = 19.918311
+ p95  = 37.845508
+ p99  = 39.641145
+OUTPUT-CADENCE FPS
+ average(system wall) = 49.649169
+ min = 25.223117
+ max = 3017.956843
+ p95 = 26.423215
+ p99 = 25.226315
+
+Results saved to:
+/home/root/hyperstarcop_sweep_results/runs/10_model_runners__max_model_only__r2_pre1_post1_spr1_pin__rep1__n90

@@ -1,0 +1,66 @@
+============================================================
+HYPERSTARCOP ZCU104 OPTIMIZED BENCHMARK
+============================================================
+Batch: 1 ALWAYS
+Profile: max-e2e
+Dataset images: 9
+Runners: 3
+Pre workers: 4
+Post workers: 1
+Slots/runner: 2
+Pin: no
+Input  : [1,512,512,4] INT8 fix=5
+Output : [1,512,512,1] INT8 fix=2
+
+============================================================
+max_end_to_end_throughput
+============================================================
+batch              = 1
+runners            = 3
+pre_workers        = 4
+post_workers       = 1
+slots_per_runner   = 2
+completed          = 90
+wall_s             = 4.662264
+THROUGHPUT FPS     = 19.303927
+
+FPS EQUIVALENT FROM PER-JOB LATENCY
+ average = 3.581894
+ min     = 2.182130
+ max     = 4.916595
+ p95     = 2.325763
+ p99     = 2.210518
+
+LATENCY ms
+ mean   = 279.181945
+ median = 251.714740
+ min    = 203.392810
+ max    = 458.267810
+ p90    = 392.169738
+ p95    = 429.966487
+ p99    = 452.382587
+ stddev = 65.870493
+ CV     = 0.235941
+ jitter p99-p50 = 200.667847 ms
+
+DPU STAGE ms
+ mean = 43.629427
+ p95  = 66.165388
+ p99  = 82.115531
+
+PREPROCESS mean = 192.364769 ms
+POSTPROCESS mean = 25.841842 ms
+
+INTER-COMPLETION ms
+ mean = 50.098357
+ p95  = 119.899034
+ p99  = 132.480379
+OUTPUT-CADENCE FPS
+ average(system wall) = 19.303927
+ min = 6.776966
+ max = 52.262223
+ p95 = 8.340351
+ p99 = 7.548288
+
+Results saved to:
+/home/root/hyperstarcop_sweep_results/runs/30_pre_workers__max_e2e__r3_pre4_post1_spr2_nopin__rep1__n90

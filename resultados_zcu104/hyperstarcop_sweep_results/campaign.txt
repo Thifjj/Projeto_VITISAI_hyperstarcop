@@ -1,0 +1,11 @@
+language=C++17
+dpu_cores=2
+max_runners=4
+max_concurrency=16
+search_iterations=90
+final_iterations=500
+final_candidates=3
+final_repeats=3
+pin_modes=both
+runner_values=1:2:3:4
+worker_values=1:2:4:8:16

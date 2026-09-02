@@ -4,6 +4,13 @@ HyperSTARCOP - CPU FP32 optimized benchmark
 Batch is ALWAYS 1.
 
 Profiles:
+  zcu104-comparison
+      - fixed presets copied from the measured ZCU104 campaign
+      - baseline: 1 runner / 1 pre / 1 post / 1 slot
+      - best model-only: 4 runners / 1 slot per runner
+      - best end-to-end: 3 runners / 4 pre / 16 post / 5 slots per runner
+      - writes a ZCU104-compatible comparison summary
+
   baseline
       - sequential
       - one inference in flight
@@ -116,7 +123,13 @@ def parse_args():
 
     p.add_argument(
         "--profile",
-        choices=["all", "baseline", "max-model-only", "max-e2e"],
+        choices=[
+            "all",
+            "baseline",
+            "max-model-only",
+            "max-e2e",
+            "zcu104-comparison",
+        ],
         default="all",
     )
 
@@ -140,9 +153,28 @@ def parse_args():
     # Torch internal parallelism.
     p.add_argument("--intra-threads", type=int, default=1)
     p.add_argument("--interop-threads", type=int, default=1)
+    p.add_argument(
+        "--cpu-core-limit",
+        type=int,
+        default=0,
+        help=(
+            "Limita a afinidade a N nucleos. Ate o numero de nucleos fisicos, "
+            "seleciona uma CPU logica de cada nucleo; acima disso inclui SMT. "
+            "Use 0 para manter todas as CPUs permitidas."
+        ),
+    )
 
     # Benchmark.
     p.add_argument("--iterations", type=int, default=500)
+    p.add_argument(
+        "--model-only-iterations",
+        type=int,
+        default=90,
+        help=(
+            "Numero de inferencias do melhor model-only no perfil "
+            "zcu104-comparison. O padrao 90 replica a medicao da ZCU104."
+        ),
+    )
     p.add_argument("--warmup", type=int, default=20)
     p.add_argument(
         "--worker-warmup",
@@ -179,6 +211,7 @@ def parse_args():
         args.post_workers,
         args.slots,
         args.iterations,
+        args.model_only_iterations,
         args.baseline_repeats,
         args.baseline_e2e_passes,
         args.intra_threads,
@@ -188,6 +221,9 @@ def parse_args():
 
     if args.warmup < 0 or args.worker_warmup < 0:
         raise ValueError("--warmup and --worker-warmup must be >= 0")
+
+    if args.cpu_core_limit < 0:
+        raise ValueError("--cpu-core-limit must be >= 0")
 
     root = args.root.resolve()
 
@@ -217,7 +253,15 @@ def parse_args():
     args.out = (
         args.out.resolve()
         if args.out is not None
-        else root / "resultados_cpu" / "hyperstarcop_cpu_optimized"
+        else (
+            root
+            / "resultados_cpu"
+            / (
+                "hyperstarcop_cpu_zcu104_comparison"
+                if args.profile == "zcu104-comparison"
+                else "hyperstarcop_cpu_optimized"
+            )
+        )
     )
 
     return args
@@ -226,6 +270,54 @@ def parse_args():
 # ============================================================================
 # SYSTEM / AFFINITY
 # ============================================================================
+
+def physical_cpu_representatives(available):
+    representatives = []
+    seen = set()
+
+    for cpu in available:
+        topology = Path(f"/sys/devices/system/cpu/cpu{cpu}/topology")
+        try:
+            package = (topology / "physical_package_id").read_text().strip()
+            core = (topology / "core_id").read_text().strip()
+            identity = (package, core)
+        except OSError:
+            identity = ("unknown", str(cpu))
+
+        if identity not in seen:
+            seen.add(identity)
+            representatives.append(cpu)
+
+    return representatives
+
+
+def configure_process_affinity(args):
+    if not hasattr(os, "sched_getaffinity"):
+        if args.cpu_core_limit:
+            raise RuntimeError("CPU affinity is not supported on this platform")
+        return list(range(os.cpu_count() or 1))
+
+    available = sorted(os.sched_getaffinity(0))
+
+    if args.cpu_core_limit > len(available):
+        raise ValueError(
+            f"--cpu-core-limit={args.cpu_core_limit}, but only "
+            f"{len(available)} logical CPUs are available"
+        )
+
+    physical = physical_cpu_representatives(available)
+
+    if not args.cpu_core_limit:
+        selected = available
+    elif args.cpu_core_limit <= len(physical):
+        selected = physical[:args.cpu_core_limit]
+    else:
+        siblings = [cpu for cpu in available if cpu not in physical]
+        selected = (physical + siblings)[:args.cpu_core_limit]
+
+    os.sched_setaffinity(0, set(selected))
+    return selected
+
 
 def configure_torch(args):
     torch.set_num_threads(args.intra_threads)
@@ -245,8 +337,8 @@ def pin_current_thread(slot: int):
     returns the current Linux thread id.
     """
     try:
-        ncpu = os.cpu_count() or 1
-        core = slot % ncpu
+        allowed = sorted(os.sched_getaffinity(0))
+        core = allowed[slot % len(allowed)]
         tid = threading.get_native_id()
         os.sched_setaffinity(tid, {core})
     except Exception as exc:
@@ -264,6 +356,8 @@ def save_system_info(args, model):
         "torch": torch.__version__,
         "numpy": np.__version__,
         "os_cpu_count": os.cpu_count(),
+        "cpu_core_limit": args.cpu_core_limit,
+        "process_cpu_affinity": sorted(os.sched_getaffinity(0)),
         "torch_num_threads": torch.get_num_threads(),
         "torch_num_interop_threads": torch.get_num_interop_threads(),
         "profile": args.profile,
@@ -280,6 +374,59 @@ def save_system_info(args, model):
         "csv": str(args.csv),
         "parameters": sum(p.numel() for p in model.parameters()),
     }
+
+    if args.profile == "zcu104-comparison":
+        for field in [
+            "workers",
+            "pre_workers",
+            "post_workers",
+            "slots",
+            "pin",
+        ]:
+            info.pop(field, None)
+
+        info["comparison_presets"] = {
+            "baseline": {
+                "zcu104_source_run": (
+                    "00_baseline__baseline__r1_pre1_post1_"
+                    "spr1_nopin__rep1__n90"
+                ),
+                "runners": 1,
+                "pre_workers": 1,
+                "post_workers": 1,
+                "slots_per_runner": 1,
+                "total_slots": 1,
+                "pin": False,
+                "model_only_samples": args.baseline_repeats,
+                "end_to_end_dataset_passes": args.baseline_e2e_passes,
+            },
+            "best_model_only_zcu104": {
+                "zcu104_source_run": (
+                    "10_model_runners__max_model_only__r4_pre1_post1_"
+                    "spr1_nopin__rep1__n90"
+                ),
+                "runners": 4,
+                "pre_workers": 1,
+                "post_workers": 1,
+                "slots_per_runner": 1,
+                "total_slots": 4,
+                "pin": False,
+                "samples": args.model_only_iterations,
+            },
+            "best_end_to_end_zcu104": {
+                "zcu104_source_run": (
+                    "best_reproduction (configuration selected from "
+                    "60_final_c2)"
+                ),
+                "runners": 3,
+                "pre_workers": 4,
+                "post_workers": 16,
+                "slots_per_runner": 5,
+                "total_slots": 15,
+                "pin": True,
+                "samples": args.iterations,
+            },
+        }
 
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -631,11 +778,15 @@ def run_validation(args, dataset_df, model):
                 {
                     "id": sample_id,
                     "has_plume": row.get("has_plume", ""),
+                    "pixels_reais": tp + fn,
+                    "pixels_previstos": tp + fp,
                     "TP": tp,
                     "FP": fp,
                     "FN": fn,
                     "TN": tn,
                     **m,
+                    "prob_min": float(prob.min().item()),
+                    "prob_max": float(prob.max().item()),
                 }
             )
 
@@ -652,6 +803,17 @@ def run_validation(args, dataset_df, model):
         FN,
         TN,
     )
+
+    macro = {
+        name: float(np.mean([r[name] for r in rows]))
+        for name in [
+            "precision",
+            "recall",
+            "f1",
+            "iou",
+            "accuracy",
+        ]
+    }
 
     pd.DataFrame(rows).to_csv(
         args.out / "metricas_por_imagem.csv",
@@ -671,6 +833,11 @@ def run_validation(args, dataset_df, model):
                 "f1_global": gm["f1"],
                 "iou_global": gm["iou"],
                 "accuracy_global": gm["accuracy"],
+                "precision_media": macro["precision"],
+                "recall_media": macro["recall"],
+                "f1_media": macro["f1"],
+                "iou_media": macro["iou"],
+                "accuracy_media": macro["accuracy"],
             }
         ]
     ).to_csv(
@@ -1112,6 +1279,7 @@ class Frame:
     worker: int = -1
     post_worker: int = -1
 
+    slot_wait_ms: float = 0.0
     queued_infer: float = 0.0
     queued_post: float = 0.0
 
@@ -1155,6 +1323,11 @@ def run_max_e2e(args, dataset_df, base_model):
     post_q = queue.Queue(
         maxsize=args.slots
     )
+
+    # Equivalent to the ZCU104 free-slot pool: at most ``slots`` frames may
+    # exist inside PRE -> INFERENCE -> POST at once. Queue bounds alone do not
+    # enforce this because frames can occupy both queues and active workers.
+    inflight_slots = threading.Semaphore(args.slots)
 
     for j in range(args.iterations):
         job_q.put(j)
@@ -1201,6 +1374,8 @@ def run_max_e2e(args, dataset_df, base_model):
             di = j % len(dataset_df)
 
             arrival = time.perf_counter()
+            inflight_slots.acquire()
+            got_slot = time.perf_counter()
 
             row = dataset_df.iloc[di]
 
@@ -1219,6 +1394,7 @@ def run_max_e2e(args, dataset_df, base_model):
                 arrival=arrival,
                 x=x,
                 pre_worker=pre_id,
+                slot_wait_ms=(got_slot - arrival) * 1000.0,
                 queued_infer=time.perf_counter(),
                 io_preprocess_ms=(p1 - p0) * 1000.0,
             )
@@ -1328,6 +1504,7 @@ def run_max_e2e(args, dataset_df, base_model):
                 worker=frame.worker,
                 pre_worker=frame.pre_worker,
                 post_worker=frame.post_worker,
+                slot_wait_ms=frame.slot_wait_ms,
                 io_preprocess_ms=frame.io_preprocess_ms,
                 pre_infer_queue_ms=frame.pre_infer_queue_ms,
                 model_ms=frame.model_ms,
@@ -1341,6 +1518,8 @@ def run_max_e2e(args, dataset_df, base_model):
                     - run_start_holder["t"]
                 ),
             )
+
+            inflight_slots.release()
 
     pre_threads = [
         threading.Thread(
@@ -1544,6 +1723,113 @@ def save_results(args, results):
     )
 
 
+def save_zcu104_comparison_summary(args, results):
+    """Write only fields that have the same meaning on CPU and ZCU104."""
+    preset = {
+        "baseline_model_only": {
+            "scenario": "baseline",
+            "zcu104_source_run": (
+                "00_baseline__baseline__r1_pre1_post1_"
+                "spr1_nopin__rep1__n90"
+            ),
+            "pre_workers": 1,
+            "post_workers": 1,
+            "slots_per_runner": 1,
+            "total_slots": 1,
+            "pin": False,
+        },
+        "baseline_end_to_end": {
+            "scenario": "baseline",
+            "zcu104_source_run": (
+                "00_baseline__baseline__r1_pre1_post1_"
+                "spr1_nopin__rep1__n90"
+            ),
+            "pre_workers": 1,
+            "post_workers": 1,
+            "slots_per_runner": 1,
+            "total_slots": 1,
+            "pin": False,
+        },
+        "max_model_only_throughput": {
+            "scenario": "best_model_only_zcu104",
+            "zcu104_source_run": (
+                "10_model_runners__max_model_only__r4_pre1_post1_"
+                "spr1_nopin__rep1__n90"
+            ),
+            "pre_workers": 1,
+            "post_workers": 1,
+            "slots_per_runner": 1,
+            "total_slots": 4,
+            "pin": False,
+        },
+        "max_end_to_end_throughput": {
+            "scenario": "best_end_to_end_zcu104",
+            "zcu104_source_run": (
+                "best_reproduction (configuration selected from "
+                "60_final_c2)"
+            ),
+            "pre_workers": 4,
+            "post_workers": 16,
+            "slots_per_runner": 5,
+            "total_slots": 15,
+            "pin": True,
+        },
+    }
+
+    rows = []
+
+    for result in results:
+        config = preset[result.mode]
+        rows.append(
+            {
+                "scenario": config["scenario"],
+                "zcu104_source_run": config["zcu104_source_run"],
+                "mode": result.mode,
+                "platform": "CPU",
+                "precision": "FP32",
+                "batch": result.batch,
+                "runners": result.workers,
+                "pre_workers": config["pre_workers"],
+                "post_workers": config["post_workers"],
+                "slots_per_runner": config["slots_per_runner"],
+                "total_slots": config["total_slots"],
+                "pin": config["pin"],
+                "samples": result.completed,
+                "wall_s": result.wall_s,
+                "throughput_fps": result.throughput_fps,
+                "latency_mean_ms": result.latency.mean,
+                "latency_median_ms": result.latency.median,
+                "latency_min_ms": result.latency.min,
+                "latency_max_ms": result.latency.max,
+                "latency_p90_ms": result.latency.p90,
+                "latency_p95_ms": result.latency.p95,
+                "latency_p99_ms": result.latency.p99,
+                "latency_stddev_ms": result.latency.stddev,
+                "latency_cv": result.latency.cv,
+                "latency_p99_minus_p50_ms": (
+                    result.latency.p99 - result.latency.median
+                ),
+                "model_mean_ms": result.model.mean,
+                "model_p95_ms": result.model.p95,
+                "model_p99_ms": result.model.p99,
+                "preprocess_mean_ms": result.preprocess.mean,
+                "preprocess_p95_ms": result.preprocess.p95,
+                "preprocess_p99_ms": result.preprocess.p99,
+                "postprocess_mean_ms": result.postprocess.mean,
+                "postprocess_p95_ms": result.postprocess.p95,
+                "postprocess_p99_ms": result.postprocess.p99,
+                "inter_completion_mean_ms": result.inter_completion.mean,
+                "inter_completion_p95_ms": result.inter_completion.p95,
+                "inter_completion_p99_ms": result.inter_completion.p99,
+            }
+        )
+
+    pd.DataFrame(rows).to_csv(
+        args.out / "benchmark_summary_comparavel_zcu104.csv",
+        index=False,
+    )
+
+
 def print_result(r: BenchmarkResult):
     print()
     print("=" * 72)
@@ -1661,6 +1947,7 @@ def main():
         exist_ok=True,
     )
 
+    selected_cpus = configure_process_affinity(args)
     configure_torch(args)
 
     if not args.weights.exists():
@@ -1695,15 +1982,20 @@ def main():
     print("Batch: 1 ALWAYS")
     print("Profile:", args.profile)
     print("Dataset images:", len(dataset_df))
-    print("Inference workers:", args.workers)
-    print("Pre workers:", args.pre_workers)
-    print("Post workers:", args.post_workers)
-    print("Slots:", args.slots)
+    if args.profile != "zcu104-comparison":
+        print("Inference workers:", args.workers)
+        print("Pre workers:", args.pre_workers)
+        print("Post workers:", args.post_workers)
+        print("Slots:", args.slots)
+        print("Pin:", args.pin)
+    else:
+        print("Fixed presets: ZCU104 baseline + two best configurations")
     print("PyTorch intra-op:", torch.get_num_threads())
     print("PyTorch inter-op:", torch.get_num_interop_threads())
-    print("Pin:", args.pin)
-
+    print("Process CPU affinity:", selected_cpus)
     if (
+        args.profile != "zcu104-comparison"
+        and
         args.workers > 1
         and args.intra_threads > 1
     ):
@@ -1726,6 +2018,60 @@ def main():
         print(">>> VALIDATION FINISHED")
 
     results = []
+
+    if args.profile == "zcu104-comparison":
+        print()
+        print(">>> STAGE 2: ZCU104-EQUIVALENT BASELINE")
+        baseline_args = copy.copy(args)
+        baseline_args.workers = 1
+        baseline_args.pre_workers = 1
+        baseline_args.post_workers = 1
+        baseline_args.slots = 1
+        baseline_args.pin = False
+        baseline_results = run_baseline(
+            baseline_args,
+            dataset_df,
+            model,
+        )
+        results.extend(baseline_results)
+        for result in baseline_results:
+            print_result(result)
+        print(">>> BASELINE FINISHED")
+
+        print()
+        print(">>> STAGE 3: ZCU104 BEST MODEL-ONLY PRESET")
+        model_args = copy.copy(args)
+        model_args.workers = 4
+        model_args.pre_workers = 1
+        model_args.post_workers = 1
+        model_args.slots = 4
+        model_args.iterations = args.model_only_iterations
+        model_args.pin = False
+        result = run_max_model_only(
+            model_args,
+            dataset_df,
+            model,
+        )
+        results.append(result)
+        print_result(result)
+        print(">>> BEST MODEL-ONLY PRESET FINISHED")
+
+        print()
+        print(">>> STAGE 4: ZCU104 BEST END-TO-END PRESET")
+        e2e_args = copy.copy(args)
+        e2e_args.workers = 3
+        e2e_args.pre_workers = 4
+        e2e_args.post_workers = 16
+        e2e_args.slots = 15
+        e2e_args.pin = True
+        result = run_max_e2e(
+            e2e_args,
+            dataset_df,
+            model,
+        )
+        results.append(result)
+        print_result(result)
+        print(">>> BEST END-TO-END PRESET FINISHED")
 
     if args.profile in ("all", "baseline"):
         print()
@@ -1768,6 +2114,12 @@ def main():
         args,
         results,
     )
+
+    if args.profile == "zcu104-comparison":
+        save_zcu104_comparison_summary(
+            args,
+            results,
+        )
 
     print()
     print("Results saved to:")

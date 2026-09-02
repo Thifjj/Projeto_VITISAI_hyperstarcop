@@ -1,7 +1,10 @@
 #arquivos normais
 resultados_dataset/
+resultados_cpu/hyperstarcop_cpu_sweep
 STARCOP/
 STARCOP_mini/
+vitis_ai/inspect/
+vitis_ai/quantized_int8_calib200/__pycache__
 venv
 STARCOP_test_full
 #arquivo zip

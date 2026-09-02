@@ -1,0 +1,54 @@
+{
+  "platform": "CPU",
+  "precision": "FP32",
+  "batch": 1,
+  "python": "3.10.20",
+  "platform_string": "Linux-7.0.0-30-generic-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "torch": "2.13.0+cu130",
+  "numpy": "2.2.6",
+  "os_cpu_count": 16,
+  "torch_num_threads": 1,
+  "torch_num_interop_threads": 1,
+  "profile": "zcu104-comparison",
+  "iterations": 500,
+  "warmup": 20,
+  "worker_warmup": 5,
+  "weights": "/media/thifj/nvme21/Trabalhos_mes8/Projeto_Metano/vitis_ai/float_model/hyperstarcop_network_fp32.pth",
+  "dataset": "/media/thifj/nvme21/Trabalhos_mes8/Projeto_Metano/STARCOP_mini",
+  "csv": "/media/thifj/nvme21/Trabalhos_mes8/Projeto_Metano/STARCOP_mini/test_mini10.csv",
+  "parameters": 6629233,
+  "comparison_presets": {
+    "baseline": {
+      "zcu104_source_run": "00_baseline__baseline__r1_pre1_post1_spr1_nopin__rep1__n90",
+      "runners": 1,
+      "pre_workers": 1,
+      "post_workers": 1,
+      "slots_per_runner": 1,
+      "total_slots": 1,
+      "pin": false,
+      "model_only_samples": 100,
+      "end_to_end_dataset_passes": 5
+    },
+    "best_model_only_zcu104": {
+      "zcu104_source_run": "10_model_runners__max_model_only__r4_pre1_post1_spr1_nopin__rep1__n90",
+      "runners": 4,
+      "pre_workers": 1,
+      "post_workers": 1,
+      "slots_per_runner": 1,
+      "total_slots": 4,
+      "pin": false,
+      "samples": 90
+    },
+    "best_end_to_end_zcu104": {
+      "zcu104_source_run": "best_reproduction (configuration selected from 60_final_c2)",
+      "runners": 3,
+      "pre_workers": 4,
+      "post_workers": 16,
+      "slots_per_runner": 5,
+      "total_slots": 15,
+      "pin": true,
+      "samples": 500
+    }
+  }
+}

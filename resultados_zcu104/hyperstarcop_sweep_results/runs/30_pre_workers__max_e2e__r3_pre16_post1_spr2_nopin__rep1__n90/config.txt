@@ -1,0 +1,14 @@
+platform=ZCU104
+precision=INT8
+batch=1
+profile=max-e2e
+runners=3
+pre_workers=16
+post_workers=1
+slots_per_runner=2
+iterations=90
+warmup=20
+pin=false
+model=/home/root/hyperstarcop.xmodel
+dataset=/home/root/STARCOP_mini
+csv=/home/root/STARCOP_mini/test_mini10.csv
