@@ -2,38 +2,59 @@
 
 set -Eeuo pipefail
 
-# Prepara somente o necessário para os benchmarks atuais:
-#   1. venv com Python 3.10.20;
-#   2. dependências Python com versões fixas;
-#   3. download e validação do STARCOP_mini.
+# Prepara dois ambientes independentes:
+#   1. venv: projeto e benchmarks atuais;
+#   2. venv_executorch: exportação/validação ExecuTorch + XNNPACK.
+# Também baixa e valida o STARCOP_mini.
+#
+# O segundo ambiente é usado no notebook para gerar o arquivo .pte. Ele não
+# instala o runtime C++ AArch64 na ZCU104 e não depende do Python 3.9.9 da placa.
 #
 # Uso:
-#   ./setup_environment.sh          # instala/prepara
-#   ./setup_environment.sh --check  # apenas verifica, sem alterar nada
+#   ./setup_environment.sh                  # prepara os dois ambientes
+#   ./setup_environment.sh --main-only      # prepara somente venv/
+#   ./setup_environment.sh --executorch-only # prepara só venv_executorch/
+#   ./setup_environment.sh --check          # verifica ambos, sem alterar
 
 readonly REQUIRED_PYTHON_VERSION="3.10.20"
 readonly PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly VENV_DIR="$PROJECT_ROOT/venv"
 readonly VENV_PYTHON="$VENV_DIR/bin/python"
 readonly REQUIREMENTS_FILE="$PROJECT_ROOT/requirements-environment.txt"
+readonly EXECUTORCH_VENV_DIR="$PROJECT_ROOT/venv_executorch"
+readonly EXECUTORCH_PYTHON="$EXECUTORCH_VENV_DIR/bin/python"
+readonly EXECUTORCH_REQUIREMENTS_FILE="$PROJECT_ROOT/requirements-executorch.txt"
 readonly DATASET_DIR="$PROJECT_ROOT/STARCOP_mini"
 readonly DATASET_ZIP="$PROJECT_ROOT/STARCOP_mini.zip"
 readonly DATASET_GDRIVE_ID="1Qw96Drmk2jzBYSED0YPEUyuc2DnBechl"
 readonly PYTHON_BIN="${PYTHON_BIN:-python3.10}"
 
-MODE="setup"
-case "${1:-}" in
-    "") ;;
-    --check) MODE="check" ;;
-    -h|--help)
-        sed -n '5,11p' "$0"
-        exit 0
-        ;;
-    *)
-        echo "Uso: $0 [--check]" >&2
-        exit 2
-        ;;
-esac
+MODE="all"
+CHECK_ONLY="false"
+for argument in "$@"; do
+    case "$argument" in
+        --main-only) MODE="main" ;;
+        --executorch-only) MODE="executorch" ;;
+        --check) CHECK_ONLY="true" ;;
+        -h|--help)
+            printf '%s\n' \
+                "Uso: $0 [OPÇÃO]" \
+                "" \
+                "Sem opção: prepara venv/ e venv_executorch/." \
+                "  --main-only        seleciona somente o ambiente principal" \
+                "  --executorch-only  seleciona somente o ambiente ExecuTorch" \
+                "  --check            apenas verifica o ambiente selecionado" \
+                "" \
+                "Exemplo: $0 --main-only --check"
+            exit 0
+            ;;
+        *)
+            echo "Opção desconhecida: $argument" >&2
+            echo "Use '$0 --help'." >&2
+            exit 2
+            ;;
+    esac
+done
 
 info() { printf '[INFO] %s\n' "$*"; }
 ok() { printf '[OK] %s\n' "$*"; }
@@ -65,7 +86,10 @@ validate_venv() {
 }
 
 validate_pinned_packages() {
-    "$VENV_PYTHON" - "$REQUIREMENTS_FILE" <<'PY'
+    local environment_python="$1"
+    local requirements_file="$2"
+
+    "$environment_python" - "$requirements_file" <<'PY'
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 import sys
@@ -79,7 +103,14 @@ for raw_line in requirements.read_text(encoding="utf-8").splitlines():
     line = raw_line.strip()
     if not line or line.startswith("#"):
         continue
-    if "==" not in line:
+    if " @ " in line:
+        package = line.split(" @ ", 1)[0].strip()
+        try:
+            version(package)
+        except PackageNotFoundError:
+            problems.append(f"{package}: não instalado")
+        continue
+    elif "==" not in line:
         problems.append(f"requisito sem versão fixa: {line}")
         continue
     package, expected = line.split("==", 1)
@@ -95,8 +126,58 @@ if problems:
     raise SystemExit("Dependências divergentes:\n- " + "\n- ".join(problems))
 print("Dependências fixadas conferidas.")
 PY
-    "$VENV_PYTHON" -m pip check
+    "$environment_python" -m pip check
     ok "dependências Python válidas"
+}
+
+prepare_venv() {
+    local environment_dir="$1"
+    local environment_python="$2"
+    local requirements_file="$3"
+    local label="$4"
+
+    [[ -f "$requirements_file" ]] || fail "Arquivo ausente: $requirements_file"
+
+    if [[ ! -x "$environment_python" ]]; then
+        info "Criando $label com Python $REQUIRED_PYTHON_VERSION..."
+        "$PYTHON_BIN" -m venv "$environment_dir"
+    else
+        local detected
+        detected="$(python_version "$environment_python")"
+        [[ "$detected" == "$REQUIRED_PYTHON_VERSION" ]] || fail \
+            "$label usa Python $detected; esperado: $REQUIRED_PYTHON_VERSION."
+        info "Atualizando scripts de ativação de $label..."
+        "$PYTHON_BIN" -m venv --upgrade "$environment_dir"
+    fi
+
+    info "Atualizando ferramentas de instalação em $label..."
+    "$environment_python" -m pip install --upgrade pip setuptools wheel
+
+    info "Instalando dependências fixadas de $label..."
+    "$environment_python" -m pip install --requirement "$requirements_file"
+    validate_pinned_packages "$environment_python" "$requirements_file"
+    ok "$label preparado"
+}
+
+validate_executorch() {
+    [[ -x "$EXECUTORCH_PYTHON" ]] || fail \
+        "venv ExecuTorch ausente em: $EXECUTORCH_VENV_DIR"
+
+    local detected
+    detected="$(python_version "$EXECUTORCH_PYTHON")"
+    [[ "$detected" == "$REQUIRED_PYTHON_VERSION" ]] || fail \
+        "venv ExecuTorch usa Python $detected; esperado: $REQUIRED_PYTHON_VERSION."
+
+    validate_pinned_packages \
+        "$EXECUTORCH_PYTHON" \
+        "$EXECUTORCH_REQUIREMENTS_FILE"
+
+    "$EXECUTORCH_PYTHON" - <<'PY'
+import executorch
+from executorch.backends.xnnpack.partition.xnnpack_partitioner import XnnpackPartitioner
+print("ExecuTorch e particionador XNNPACK importados com sucesso.")
+PY
+    ok "ambiente ExecuTorch/XNNPACK válido"
 }
 
 validate_dataset() {
@@ -185,39 +266,42 @@ PY
 printf '\nPreparação do ambiente HyperSTARCOP\nProjeto: %s\n\n' "$PROJECT_ROOT"
 require_python_31020
 
-if [[ "$MODE" == "check" ]]; then
-    validate_venv
-    validate_pinned_packages
-    validate_dataset
+if [[ "$CHECK_ONLY" == "true" ]]; then
+    if [[ "$MODE" == "all" || "$MODE" == "main" ]]; then
+        validate_venv
+        validate_pinned_packages "$VENV_PYTHON" "$REQUIREMENTS_FILE"
+        validate_dataset
+    fi
+    if [[ "$MODE" == "all" || "$MODE" == "executorch" ]]; then
+        validate_executorch
+    fi
     printf '\nAmbiente conferido; nenhuma alteração foi feita.\n'
     exit 0
 fi
 
-[[ -f "$REQUIREMENTS_FILE" ]] || fail "Arquivo ausente: $REQUIREMENTS_FILE"
+if [[ "$MODE" == "all" || "$MODE" == "main" ]]; then
+    prepare_venv "$VENV_DIR" "$VENV_PYTHON" "$REQUIREMENTS_FILE" "venv principal"
 
-if [[ ! -x "$VENV_PYTHON" ]]; then
-    info "Criando venv com Python $REQUIRED_PYTHON_VERSION..."
-    "$PYTHON_BIN" -m venv "$VENV_DIR"
-else
-    validate_venv
-    # Regera scripts de ativação quando o projeto foi movido para outro caminho.
-    info "Atualizando metadados e scripts de ativação do venv existente..."
-    "$PYTHON_BIN" -m venv --upgrade "$VENV_DIR"
-fi
-validate_venv
-
-info "Atualizando pip, setuptools e wheel..."
-"$VENV_PYTHON" -m pip install --upgrade pip setuptools wheel
-
-info "Instalando as versões fixadas em requirements-environment.txt..."
-"$VENV_PYTHON" -m pip install --requirement "$REQUIREMENTS_FILE"
-validate_pinned_packages
-
-if validate_dataset; then
-    :
-else
-    download_dataset
-    validate_dataset
+    if ! validate_dataset; then
+        download_dataset
+        validate_dataset
+    fi
 fi
 
-printf '\nAmbiente pronto. Para ativar:\n  source "%s/bin/activate"\n' "$VENV_DIR"
+if [[ "$MODE" == "all" || "$MODE" == "executorch" ]]; then
+    prepare_venv \
+        "$EXECUTORCH_VENV_DIR" \
+        "$EXECUTORCH_PYTHON" \
+        "$EXECUTORCH_REQUIREMENTS_FILE" \
+        "venv ExecuTorch/XNNPACK"
+    validate_executorch
+fi
+
+printf '\nAmbientes prontos.\n'
+if [[ "$MODE" == "all" || "$MODE" == "main" ]]; then
+    printf 'Projeto atual:\n  source "%s/bin/activate"\n' "$VENV_DIR"
+fi
+if [[ "$MODE" == "all" || "$MODE" == "executorch" ]]; then
+    printf 'Exportação ExecuTorch/XNNPACK:\n  source "%s/bin/activate"\n' "$EXECUTORCH_VENV_DIR"
+    printf 'Observação: o runtime C++ AArch64 da ZCU104 deve ser compilado separadamente.\n'
+fi

@@ -6,7 +6,7 @@ Além da implantação em FPGA, o repositório contém uma implementação equiv
 
 ## Início rápido
 
-Com o Python 3.10.20 já instalado, toda a preparação necessária para executar o projeto localmente é feita pelo [`setup_environment.sh`](setup_environment.sh):
+Com o Python 3.10.20 já instalado, a preparação dos ambientes locais é feita pelo [`setup_environment.sh`](setup_environment.sh):
 
 ```bash
 git clone https://github.com/Thifjj/Projeto_VITISAI_hyperstarcop.git
@@ -30,6 +30,22 @@ python scripts/benchmark_hyperstarcop_cpu_optimized_v2.py --profile baseline
 ```
 
 O setup automatiza a preparação local, mas não instala o Vitis AI no sistema nem configura a imagem da ZCU104. Essas etapas dependem do container/runtime oficial da AMD e só são necessárias para reconstruir ou executar a versão acelerada.
+
+Por padrão, o setup mantém dois ambientes separados para evitar conflitos de versões:
+
+| Ambiente | Finalidade |
+|---|---|
+| `venv/` | checkpoint original, validações e benchmarks PyTorch atuais |
+| `venv_executorch/` | exportação e validação do `.pte` com ExecuTorch/XNNPACK |
+
+Para preparar somente um deles:
+
+```bash
+./setup_environment.sh --main-only
+./setup_environment.sh --executorch-only
+```
+
+O ambiente `venv_executorch/` é usado no notebook. A execução na CPU ARM da ZCU104 deverá usar o runtime C++ AArch64, compilado separadamente, e não o Python 3.9.9 da placa.
 
 ## Objetivos e trabalho realizado
 
@@ -99,7 +115,8 @@ U-Net + MobileNetV2 FP32 ───────► benchmark na CPU
 ```text
 Projeto_Metano/
 ├── setup_environment.sh          # cria venv, instala libs e baixa o dataset
-├── requirements-environment.txt  # dependências Python fixadas
+├── requirements-environment.txt  # dependências do ambiente principal
+├── requirements-executorch.txt   # dependências de exportação ExecuTorch
 ├── model/                        # checkpoint e configuração originais
 ├── STARCOP_mini/                 # dataset reduzido, criado pelo setup
 ├── scripts/                      # validação e benchmarks em CPU
@@ -133,7 +150,7 @@ chmod +x setup_environment.sh
 ./setup_environment.sh
 ```
 
-Esse único comando:
+Sem opções, esse único comando prepara `venv/` e `venv_executorch/`. Para o ambiente principal, ele:
 
 - cria o `venv` usando exatamente Python 3.10.20;
 - atualiza `pip`, `setuptools` e `wheel` dentro do ambiente;
@@ -150,6 +167,8 @@ Em resumo:
 | Instalar as bibliotecas nas versões corretas | Sim |
 | Instalar o pacote Python `starcop` | Sim |
 | Baixar, extrair e validar o `STARCOP_mini` | Sim |
+| Criar ambiente separado para ExecuTorch/XNNPACK | Sim |
+| Gerar o arquivo `.pte` | Não: será feito pelo script de exportação |
 | Baixar o checkpoint FP32 | Não é necessário: já está em `model/` |
 | Executar validações e benchmarks | Não: o usuário escolhe qual teste executar |
 | Instalar Vitis AI/VART | Não: depende do ambiente oficial da AMD |
@@ -159,6 +178,8 @@ Para apenas conferir uma instalação existente, sem modificar arquivos:
 
 ```bash
 ./setup_environment.sh --check
+./setup_environment.sh --main-only --check
+./setup_environment.sh --executorch-only --check
 ```
 
 Ative o ambiente depois da preparação:

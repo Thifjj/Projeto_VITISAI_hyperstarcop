@@ -6,6 +6,7 @@ STARCOP_mini/
 vitis_ai/inspect/
 vitis_ai/quantized_int8_calib200/__pycache__
 venv
+venv_executorch
 STARCOP_test_full
 #arquivo zip
 STARCOP_mini.zip
