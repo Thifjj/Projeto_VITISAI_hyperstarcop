@@ -23,8 +23,8 @@ CSV_TEST = ROOT / "test_mini10.csv"
 
 CHECKPOINT = "model/final_checkpoint_model.ckpt"
 
-OUTPUT_DIR = Path("resultados_datasetmini")
-OUTPUT_DIR.mkdir(exist_ok=True)
+OUTPUT_DIR = Path("resultados_dataset")
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 STARCOP_DIR = os.path.dirname(starcop.__file__)
 CONFIG_BASE = os.path.join(STARCOP_DIR, "config.yaml")

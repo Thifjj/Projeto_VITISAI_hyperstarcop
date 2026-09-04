@@ -11,10 +11,10 @@ set -Eeuo pipefail
 # instala o runtime C++ AArch64 na ZCU104 e não depende do Python 3.9.9 da placa.
 #
 # Uso:
-#   ./setup_environment.sh                  # prepara os dois ambientes
-#   ./setup_environment.sh --main-only      # prepara somente venv/
+#   ./setup_environment.sh                   # prepara os dois ambientes
+#   ./setup_environment.sh --main-only       # prepara somente venv/
 #   ./setup_environment.sh --executorch-only # prepara só venv_executorch/
-#   ./setup_environment.sh --check          # verifica ambos, sem alterar
+#   ./setup_environment.sh --check           # verifica ambos, sem alterar
 
 readonly REQUIRED_PYTHON_VERSION="3.10.20"
 readonly PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,0 +1,10 @@
+{
+  "cpu": "AMD Ryzen 9 5980HX",
+  "available_logical_cpus": 16,
+  "max_logical_cpus_used": 16,
+  "batch": 1,
+  "search_iterations": 90,
+  "final_iterations": 500,
+  "final_repeats": 3,
+  "measurement": "throughput=completed/wall; latency includes queue and slot wait; same CPU benchmark implementation used for ZCU104 comparison"
+}
