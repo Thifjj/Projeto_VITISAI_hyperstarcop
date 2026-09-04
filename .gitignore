@@ -1,12 +1,29 @@
-#arquivos normais
-resultados_dataset/
-resultados_cpu/hyperstarcop_cpu_sweep
+# Ambientes Python e caches
+venv/
+venv_executorch/
+__pycache__/
+*.py[cod]
+
+# Datasets locais
 STARCOP/
 STARCOP_mini/
-vitis_ai/inspect/
-vitis_ai/quantized_int8_calib200/__pycache__
-venv
-venv_executorch
-STARCOP_test_full
-#arquivo zip
 STARCOP_mini.zip
+STARCOP_test_full/
+
+# Resultados grandes ou regeneráveis
+resultados_dataset/*.png
+resultados_dataset/uma_imagem/
+resultados_cpu/hyperstarcop_cpu_sweep/runs/
+resultados_cpu/hyperstarcop_cpu_sweep/physical_first_refine/
+
+# ExecuTorch ARM: fontes externas, sysroot e builds locais
+Arm_zcu104/executorch/
+Arm_zcu104/sysroot-zcu104/
+Arm_zcu104/build-executorch-zcu104*/
+Arm_zcu104/install-executorch-zcu104*/
+Arm_zcu104/build-runner-arm/
+
+# Arquivos temporários de sistema e editor
+.DS_Store
+*.swp
+*.tmp

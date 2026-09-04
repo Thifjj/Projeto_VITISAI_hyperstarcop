@@ -1,0 +1,92 @@
+graph():
+    %b_encoder_features_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_0_1_num_batches_tracked]
+    %b_encoder_features_1_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_1_conv_0_1_num_batches_tracked]
+    %b_encoder_features_1_conv_2_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_1_conv_2_num_batches_tracked]
+    %b_encoder_features_2_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_2_conv_0_1_num_batches_tracked]
+    %b_encoder_features_2_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_2_conv_1_1_num_batches_tracked]
+    %b_encoder_features_2_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_2_conv_3_num_batches_tracked]
+    %b_encoder_features_3_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_3_conv_0_1_num_batches_tracked]
+    %b_encoder_features_3_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_3_conv_1_1_num_batches_tracked]
+    %b_encoder_features_3_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_3_conv_3_num_batches_tracked]
+    %b_encoder_features_4_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_4_conv_0_1_num_batches_tracked]
+    %b_encoder_features_4_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_4_conv_1_1_num_batches_tracked]
+    %b_encoder_features_4_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_4_conv_3_num_batches_tracked]
+    %b_encoder_features_5_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_5_conv_0_1_num_batches_tracked]
+    %b_encoder_features_5_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_5_conv_1_1_num_batches_tracked]
+    %b_encoder_features_5_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_5_conv_3_num_batches_tracked]
+    %b_encoder_features_6_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_6_conv_0_1_num_batches_tracked]
+    %b_encoder_features_6_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_6_conv_1_1_num_batches_tracked]
+    %b_encoder_features_6_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_6_conv_3_num_batches_tracked]
+    %b_encoder_features_7_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_7_conv_0_1_num_batches_tracked]
+    %b_encoder_features_7_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_7_conv_1_1_num_batches_tracked]
+    %b_encoder_features_7_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_7_conv_3_num_batches_tracked]
+    %b_encoder_features_8_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_8_conv_0_1_num_batches_tracked]
+    %b_encoder_features_8_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_8_conv_1_1_num_batches_tracked]
+    %b_encoder_features_8_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_8_conv_3_num_batches_tracked]
+    %b_encoder_features_9_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_9_conv_0_1_num_batches_tracked]
+    %b_encoder_features_9_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_9_conv_1_1_num_batches_tracked]
+    %b_encoder_features_9_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_9_conv_3_num_batches_tracked]
+    %b_encoder_features_10_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_10_conv_0_1_num_batches_tracked]
+    %b_encoder_features_10_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_10_conv_1_1_num_batches_tracked]
+    %b_encoder_features_10_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_10_conv_3_num_batches_tracked]
+    %b_encoder_features_11_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_11_conv_0_1_num_batches_tracked]
+    %b_encoder_features_11_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_11_conv_1_1_num_batches_tracked]
+    %b_encoder_features_11_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_11_conv_3_num_batches_tracked]
+    %b_encoder_features_12_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_12_conv_0_1_num_batches_tracked]
+    %b_encoder_features_12_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_12_conv_1_1_num_batches_tracked]
+    %b_encoder_features_12_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_12_conv_3_num_batches_tracked]
+    %b_encoder_features_13_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_13_conv_0_1_num_batches_tracked]
+    %b_encoder_features_13_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_13_conv_1_1_num_batches_tracked]
+    %b_encoder_features_13_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_13_conv_3_num_batches_tracked]
+    %b_encoder_features_14_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_14_conv_0_1_num_batches_tracked]
+    %b_encoder_features_14_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_14_conv_1_1_num_batches_tracked]
+    %b_encoder_features_14_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_14_conv_3_num_batches_tracked]
+    %b_encoder_features_15_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_15_conv_0_1_num_batches_tracked]
+    %b_encoder_features_15_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_15_conv_1_1_num_batches_tracked]
+    %b_encoder_features_15_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_15_conv_3_num_batches_tracked]
+    %b_encoder_features_16_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_16_conv_0_1_num_batches_tracked]
+    %b_encoder_features_16_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_16_conv_1_1_num_batches_tracked]
+    %b_encoder_features_16_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_16_conv_3_num_batches_tracked]
+    %b_encoder_features_17_conv_0_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_17_conv_0_1_num_batches_tracked]
+    %b_encoder_features_17_conv_1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_17_conv_1_1_num_batches_tracked]
+    %b_encoder_features_17_conv_3_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_17_conv_3_num_batches_tracked]
+    %b_encoder_features_18_1_num_batches_tracked : [num_users=0] = placeholder[target=b_encoder_features_18_1_num_batches_tracked]
+    %b_decoder_blocks_0_conv1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_decoder_blocks_0_conv1_1_num_batches_tracked]
+    %b_decoder_blocks_0_conv2_1_num_batches_tracked : [num_users=0] = placeholder[target=b_decoder_blocks_0_conv2_1_num_batches_tracked]
+    %b_decoder_blocks_1_conv1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_decoder_blocks_1_conv1_1_num_batches_tracked]
+    %b_decoder_blocks_1_conv2_1_num_batches_tracked : [num_users=0] = placeholder[target=b_decoder_blocks_1_conv2_1_num_batches_tracked]
+    %b_decoder_blocks_2_conv1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_decoder_blocks_2_conv1_1_num_batches_tracked]
+    %b_decoder_blocks_2_conv2_1_num_batches_tracked : [num_users=0] = placeholder[target=b_decoder_blocks_2_conv2_1_num_batches_tracked]
+    %b_decoder_blocks_3_conv1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_decoder_blocks_3_conv1_1_num_batches_tracked]
+    %b_decoder_blocks_3_conv2_1_num_batches_tracked : [num_users=0] = placeholder[target=b_decoder_blocks_3_conv2_1_num_batches_tracked]
+    %b_decoder_blocks_4_conv1_1_num_batches_tracked : [num_users=0] = placeholder[target=b_decoder_blocks_4_conv1_1_num_batches_tracked]
+    %b_decoder_blocks_4_conv2_1_num_batches_tracked : [num_users=0] = placeholder[target=b_decoder_blocks_4_conv2_1_num_batches_tracked]
+    %x : [num_users=1] = placeholder[target=x]
+    %lowered_module_0 : [num_users=1] = get_attr[target=lowered_module_0]
+    %executorch_call_delegate : [num_users=5] = call_function[target=torch.ops.higher_order.executorch_call_delegate](args = (%lowered_module_0, %x), kwargs = {})
+    %getitem_67 : [num_users=1] = call_function[target=operator.getitem](args = (%executorch_call_delegate, 0), kwargs = {})
+    %getitem_68 : [num_users=1] = call_function[target=operator.getitem](args = (%executorch_call_delegate, 1), kwargs = {})
+    %getitem_69 : [num_users=1] = call_function[target=operator.getitem](args = (%executorch_call_delegate, 2), kwargs = {})
+    %getitem_70 : [num_users=1] = call_function[target=operator.getitem](args = (%executorch_call_delegate, 3), kwargs = {})
+    %getitem_71 : [num_users=1] = call_function[target=operator.getitem](args = (%executorch_call_delegate, 4), kwargs = {})
+    %aten_upsample_nearest2d_vec : [num_users=1] = call_function[target=executorch.exir.dialects.edge._ops.aten.upsample_nearest2d.vec](args = (%getitem_71, [32, 32], None), kwargs = {})
+    %lowered_module_1 : [num_users=1] = get_attr[target=lowered_module_1]
+    %executorch_call_delegate_1 : [num_users=1] = call_function[target=torch.ops.higher_order.executorch_call_delegate](args = (%lowered_module_1, %aten_upsample_nearest2d_vec, %getitem_70), kwargs = {})
+    %getitem_66 : [num_users=1] = call_function[target=operator.getitem](args = (%executorch_call_delegate_1, 0), kwargs = {})
+    %aten_upsample_nearest2d_vec_1 : [num_users=1] = call_function[target=executorch.exir.dialects.edge._ops.aten.upsample_nearest2d.vec](args = (%getitem_66, [64, 64], None), kwargs = {})
+    %lowered_module_2 : [num_users=1] = get_attr[target=lowered_module_2]
+    %executorch_call_delegate_2 : [num_users=1] = call_function[target=torch.ops.higher_order.executorch_call_delegate](args = (%lowered_module_2, %aten_upsample_nearest2d_vec_1, %getitem_69), kwargs = {})
+    %getitem_65 : [num_users=1] = call_function[target=operator.getitem](args = (%executorch_call_delegate_2, 0), kwargs = {})
+    %aten_upsample_nearest2d_vec_2 : [num_users=1] = call_function[target=executorch.exir.dialects.edge._ops.aten.upsample_nearest2d.vec](args = (%getitem_65, [128, 128], None), kwargs = {})
+    %lowered_module_3 : [num_users=1] = get_attr[target=lowered_module_3]
+    %executorch_call_delegate_3 : [num_users=1] = call_function[target=torch.ops.higher_order.executorch_call_delegate](args = (%lowered_module_3, %aten_upsample_nearest2d_vec_2, %getitem_68), kwargs = {})
+    %getitem_64 : [num_users=1] = call_function[target=operator.getitem](args = (%executorch_call_delegate_3, 0), kwargs = {})
+    %aten_upsample_nearest2d_vec_3 : [num_users=1] = call_function[target=executorch.exir.dialects.edge._ops.aten.upsample_nearest2d.vec](args = (%getitem_64, [256, 256], None), kwargs = {})
+    %lowered_module_4 : [num_users=1] = get_attr[target=lowered_module_4]
+    %executorch_call_delegate_4 : [num_users=1] = call_function[target=torch.ops.higher_order.executorch_call_delegate](args = (%lowered_module_4, %aten_upsample_nearest2d_vec_3, %getitem_67), kwargs = {})
+    %getitem_63 : [num_users=1] = call_function[target=operator.getitem](args = (%executorch_call_delegate_4, 0), kwargs = {})
+    %aten_upsample_nearest2d_vec_4 : [num_users=1] = call_function[target=executorch.exir.dialects.edge._ops.aten.upsample_nearest2d.vec](args = (%getitem_63, [512, 512], None), kwargs = {})
+    %lowered_module_5 : [num_users=1] = get_attr[target=lowered_module_5]
+    %executorch_call_delegate_5 : [num_users=1] = call_function[target=torch.ops.higher_order.executorch_call_delegate](args = (%lowered_module_5, %aten_upsample_nearest2d_vec_4), kwargs = {})
+    %getitem_62 : [num_users=1] = call_function[target=operator.getitem](args = (%executorch_call_delegate_5, 0), kwargs = {})
+    return (getitem_62,)

@@ -17,7 +17,7 @@ A comparação usa o mesmo modelo lógico, o mesmo conjunto de 9 imagens, `batch
 
 Os valores FP32 foram medidos novamente no notebook com o perfil `zcu104-comparison`. Os resultados estão em `resultados_cpu/hyperstarcop_cpu_zcu104_comparison`. Os valores INT8 vêm dos CSVs em `resultados_zcu104`.
 
-## 2. Resumo em tabela metricas mesuradas em FP32 (Modelo original)
+## 2. Resumo das métricas medidas em FP32
 
 | Indicador FP32 na CPU | Resultado |
 |---|---:|
@@ -44,7 +44,7 @@ Os valores FP32 foram medidos novamente no notebook com o perfil `zcu104-compari
 |---|---|---|
 | Plataforma | AMD Ryzen 9 5980HX, 8 núcleos físicos e 16 CPUs lógicas | Xilinx ZCU104, AArch64 |
 | Sistema | Linux 7.0.0-30-generic | PetaLinux 2022.2, kernel 5.15.36-xilinx-v2022.2 |
-| Framework/runtime  | Python 3.10.2 / PyTorch 2.13.0+cu130 | Componentes Vitis AI/VART 3.5.0 |
+| Framework/runtime | Python 3.10.20 / PyTorch 2.13.0+cu130 | Fluxo Vitis AI 3.5; bibliotecas VART/XIR 3.0.0 identificadas no alvo |
 | Precisão | FP32 | INT8 |
 | Batch | 1 | 1 |
 | Paralelismo interno | 1 thread intra-op e 1 inter-op | 2 núcleos DPUCZDX8G_ISA1_B4096 |
@@ -67,7 +67,7 @@ Resultados globais medidos na ZCU104 com o modelo INT8:
 
 As médias simples por imagem na ZCU104 foram: precisão 0,859369; recall 0,842942; F1 0,843366; IoU 0,739378; acurácia 0,996554.
 
-### 4.2 Resultados por imagem FP32 (Modelo original)
+### 4.2 Resultados por imagem FP32
 
 Todas as 9 imagens avaliadas contêm pluma (`has_plume = True`). Os valores desta tabela foram medidos na CPU com os pesos originais FP32.
 
@@ -85,7 +85,7 @@ Todas as 9 imagens avaliadas contêm pluma (`has_plume = True`). Os valores dest
 
 O melhor F1 em FP32 ocorreu em `165503_r2660_c460`, com 0,9556. O pior ocorreu em `141549_r3900_c244`, com 0,2178, principalmente pelo recall de apenas 0,1222 nessa imagem de pluma pequena.
 
-### 4.3 Tabela de comparação qualidade da segmentacao ZCU104 (INT8) com a referência FP32 documentada
+### 4.3 Comparação da qualidade entre ZCU104 INT8 e FP32
 
 | Métrica | CPU FP32 | ZCU104 INT8 | Delta INT8 − FP32 | Interpretação |
 |---|---:|---:|---:|---|
@@ -97,7 +97,7 @@ O melhor F1 em FP32 ocorreu em `165503_r2660_c460`, com 0,9556. O pior ocorreu e
 
 O modelo INT8 preservou a qualidade global do FP32. A quantização produziu máscaras um pouco mais conservadoras no agregado: a precisão aumentou e o recall diminuiu. F1, IoU e acurácia permaneceram praticamente inalterados.
 
-## 5. Tabela de comparacao de benchmark CPU (FP32) x DPU ZCU104 (INT8)
+## 5. Comparação de desempenho: CPU FP32 × DPU ZCU104 INT8
 
 ### Baseline: configuração com tudo em 1
 
@@ -217,7 +217,7 @@ Comparando as melhores configurações específicas de cada plataforma, a ZCU104
 3. No baseline `model-only`, a ZCU104 foi 12,773 vezes mais rápida que a CPU do notebook e reduziu a latência média em 92,17%.
 4. No baseline `end-to-end`, a ZCU104 foi 2,399 vezes mais rápida e reduziu a latência média em 58,29%.
 5. Limitando o notebook a dois núcleos físicos, a melhor estratégia foi 1 runner × 2 threads: 3,770 FPS em `model-only` e 3,540 FPS em `end-to-end`.
-8. Comparando as melhores configurações específicas de cada plataforma, a ZCU104 foi 8,373 vezes mais rápida em `model-only` e 4,086 vezes mais rápida em `end-to-end`.
+6. Comparando as melhores configurações específicas de cada plataforma, a ZCU104 foi 8,373 vezes mais rápida em `model-only` e 4,086 vezes mais rápida em `end-to-end`.
 
 ## 7. Observações de interpretação
 
@@ -228,3 +228,4 @@ Comparando as melhores configurações específicas de cada plataforma, a ZCU104
 - Os 2 núcleos físicos usados no teste restrito correspondem às CPUs lógicas `[0, 2]`; usar `[0, 1]` escolheria duas threads SMT do mesmo núcleo físico neste processador.
 - Os valores de FPS percentil derivados de latência não representam vazão sustentada em cenários concorrentes. A vazão comparável é `throughput_fps = imagens concluídas / tempo total`.
 - Os resultados da comparação direta estão em `resultados_cpu/hyperstarcop_cpu_zcu104_comparison`; as 37 execuções da busca CPU estão consolidadas em `resultados_cpu/hyperstarcop_cpu_sweep/all_runs.csv`, com as configurações finais em `best_configs.json`.
+- A comparação que também inclui a CPU ARM/ExecuTorch está em [`comparacao_benchmarks_configuracoes.md`](comparacao_benchmarks_configuracoes.md).

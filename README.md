@@ -1,266 +1,143 @@
-# HyperSTARCOP no Vitis AI e na ZCU104
+# HyperSTARCOP na ZCU104
 
-Implementação, validação e análise de desempenho do **HyperSTARCOP `mag1c + RGB`** para segmentação de plumas de metano. O projeto parte do checkpoint FP32 publicado pelo [STARCOP](https://github.com/spaceml-org/STARCOP), extrai a rede U-Net com encoder MobileNetV2, realiza quantização INT8 e compilação pelo Vitis AI e executa o modelo nos dois núcleos DPU de uma AMD/Xilinx ZCU104.
+Implantação e benchmark do **HyperSTARCOP `mag1c + RGB`** para segmentação de plumas de metano. O mesmo modelo foi avaliado em três alvos:
 
-Além da implantação em FPGA, o repositório contém uma implementação equivalente para CPU. Ela usa as mesmas entradas, normalização, pós-processamento, métricas de qualidade e métodos de medição de desempenho empregados na placa, permitindo uma comparação controlada.
+- CPU x86 do notebook com PyTorch FP32;
+- CPU ARM Cortex-A53 da ZCU104 com ExecuTorch/XNNPACK FP32;
+- dois núcleos DPU da ZCU104 com VART e modelo INT8.
 
-## Início rápido
+O projeto inclui preparação do ambiente, validação de qualidade, quantização, execução embarcada e comparação de FPS e latência.
 
-Com o Python 3.10.20 já instalado, a preparação dos ambientes locais é feita pelo [`setup_environment.sh`](setup_environment.sh):
+## Estado do projeto
+
+| Fluxo | Estado | Artefato principal |
+|---|---|---|
+| Referência PyTorch FP32 | concluído | `model/final_checkpoint_model.ckpt` |
+| Rede FP32 independente | concluído | `vitis_ai/float_model/hyperstarcop_network_fp32.pth` |
+| DPU INT8 | concluído | `vitis_ai/compiled/zcu104_b4096/hyperstarcop.xmodel` |
+| CPU ARM/XNNPACK | concluído | `Arm_zcu104/model/hyperstarcop_xnnpack_fp32.pte` |
+| Benchmarks comparativos | concluído | `resultados_zcu104/comparacao_benchmarks_configuracoes.md` |
+
+## Início rápido no notebook
+
+Requisito: Python **3.10.20** disponível como `python3.10`.
 
 ```bash
 git clone https://github.com/Thifjj/Projeto_VITISAI_hyperstarcop.git
 cd Projeto_VITISAI_hyperstarcop
-
 chmod +x setup_environment.sh
 ./setup_environment.sh
 source venv/bin/activate
 ```
 
-Não é necessário criar o `venv`, instalar bibliotecas ou baixar o `STARCOP_mini` manualmente. Depois disso, um primeiro teste pode ser executado com:
+O [`setup_environment.sh`](setup_environment.sh) cria os ambientes, instala as versões fixadas e baixa/valida o `STARCOP_mini`. Não é necessário criar o venv ou instalar o pacote STARCOP manualmente.
+
+Teste funcional:
 
 ```bash
 python scripts/validando_1imagem_rede.py
 ```
 
-Ou o benchmark básico da CPU:
+Benchmark sequencial da CPU:
 
 ```bash
 python scripts/benchmark_hyperstarcop_cpu_optimized_v2.py --profile baseline
 ```
 
-O setup automatiza a preparação local, mas não instala o Vitis AI no sistema nem configura a imagem da ZCU104. Essas etapas dependem do container/runtime oficial da AMD e só são necessárias para reconstruir ou executar a versão acelerada.
+### Opções do setup
 
-Por padrão, o setup mantém dois ambientes separados para evitar conflitos de versões:
-
-| Ambiente | Finalidade |
+| Comando | Ação |
 |---|---|
-| `venv/` | checkpoint original, validações e benchmarks PyTorch atuais |
-| `venv_executorch/` | exportação e validação do `.pte` com ExecuTorch/XNNPACK |
+| `./setup_environment.sh` | prepara `venv/`, `venv_executorch/` e o dataset |
+| `./setup_environment.sh --main-only` | prepara somente o ambiente PyTorch principal |
+| `./setup_environment.sh --executorch-only` | prepara somente o ambiente de exportação ExecuTorch |
+| `./setup_environment.sh --check` | confere os dois ambientes sem alterá-los |
 
-Para preparar somente um deles:
-
-```bash
-./setup_environment.sh --main-only
-./setup_environment.sh --executorch-only
-```
-
-O ambiente `venv_executorch/` é usado no notebook. A execução na CPU ARM da ZCU104 deverá usar o runtime C++ AArch64, compilado separadamente, e não o Python 3.9.9 da placa.
-
-## Objetivos e trabalho realizado
-
-O fluxo desenvolvido neste projeto cobre:
-
-1. validação do checkpoint oficial do HyperSTARCOP;
-2. extração da CNN para um modelo PyTorch independente do Lightning;
-3. conferência de equivalência entre o checkpoint e a rede extraída;
-4. inspeção da arquitetura para o alvo `DPUCZDX8G_ISA1_B4096`;
-5. quantização pós-treinamento de FP32 para INT8;
-6. compilação para o formato `.xmodel` da ZCU104;
-7. implementação da inferência na placa em C++ com VART e OpenCV;
-8. validação da segmentação no `STARCOP_mini`;
-9. benchmarks `model-only` e `end-to-end` com `batch = 1`;
-10. busca de paralelismo com runners, workers, slots e afinidade;
-11. reprodução das medições na CPU do notebook;
-12. comparação de qualidade e desempenho entre CPU FP32 e DPU INT8.
-
-## Modelo e dados
-
-O modelo avaliado é o **HyperSTARCOP `mag1c + RGB`**, proposto no artigo [Semantic segmentation of methane plumes with hyperspectral machine learning models](https://pmc.ncbi.nlm.nih.gov/articles/PMC10656523/).
-
-A entrada possui quatro canais de `512 × 512` pixels:
-
-| Canal | Produto |
-|---:|---|
-| 0 | `mag1c.tif` |
-| 1 | `TOA_AVIRIS_640nm.tif` — vermelho |
-| 2 | `TOA_AVIRIS_550nm.tif` — verde |
-| 3 | `TOA_AVIRIS_460nm.tif` — azul |
-
-A rede produz um mapa de logits com um canal. A máscara binária é obtida por:
-
-```text
-logits → sigmoid → threshold 0,5 → máscara de metano
-```
-
-O `STARCOP_mini` usado nos testes possui nove imagens de treino e nove de teste. As medições apresentadas neste repositório usam as nove imagens listadas em `test_mini10.csv`.
-
-## Fluxo do projeto
-
-```text
-Checkpoint oficial FP32
-          │
-          ▼
-  HyperSTARCOP completo
-          │ extração da CNN
-          ▼
-U-Net + MobileNetV2 FP32 ───────► benchmark na CPU
-          │
-          ├── inspeção para a DPU
-          ├── calibração e quantização INT8
-          └── compilação Vitis AI
-                      │
-                      ▼
-             hyperstarcop.xmodel
-                      │
-                      ▼
-          VART C++ na ZCU104 (2 DPUs)
-                      │
-                      ▼
-       métricas, latência e throughput
-```
+O setup não instala Vitis AI/VART e não modifica a imagem da placa. Essas ferramentas pertencem ao ambiente AMD.
 
 ## Organização do repositório
 
 ```text
-Projeto_Metano/
-├── setup_environment.sh          # cria venv, instala libs e baixa o dataset
-├── requirements-environment.txt  # dependências do ambiente principal
-├── requirements-executorch.txt   # dependências de exportação ExecuTorch
-├── model/                        # checkpoint e configuração originais
-├── STARCOP_mini/                 # dataset reduzido, criado pelo setup
-├── scripts/                      # validação e benchmarks em CPU
-├── vitis_ai/
-│   ├── scripts/                  # extração, inspeção e quantização
-│   ├── float_model/              # pesos FP32 da CNN independente
-│   ├── inspect/                  # relatório de compatibilidade da DPU
-│   ├── quantized_int8_calib200/  # artefatos quantizados
-│   ├── compiled/zcu104_b4096/    # XModel compilado
-│   └── results_*/                # validações intermediárias
-├── to_zcu/                       # aplicação C++ e sweep para a placa
-├── resultados_dataset/           # métricas e imagens da referência FP32
-├── resultados_cpu/               # benchmarks realizados no notebook
-└── resultados_zcu104/            # resultados, logs e relatório consolidado
+.
+├── model/                    # checkpoint e configuração originais
+├── scripts/                  # validação e benchmark no notebook
+├── vitis_ai/                 # extração, quantização e XModel
+├── to_zcu/                   # runner e sweep C++ da DPU
+├── Arm_zcu104/               # exportação e runtime CPU ARM
+├── resultados_dataset/       # referência de qualidade FP32
+├── resultados_cpu/           # medições do notebook
+├── resultados_zcu104/        # medições DPU e relatório consolidado
+├── setup_environment.sh
+├── requirements-environment.txt
+└── requirements-executorch.txt
 ```
 
-Os diretórios `venv/`, `STARCOP_mini/` e os arquivos grandes podem não aparecer em um clone limpo, pois são preparados localmente ou distribuídos como artefatos.
+Diretórios locais grandes, como `venv/`, `STARCOP_mini/`, sysroot, clone do ExecuTorch e builds cruzados, ficam fora do Git. Os CSVs-resumo e a documentação permanecem versionáveis.
 
-## Uso básico no notebook/CPU
+Guias por área:
 
-### 1. Pré-requisito
+- [scripts](scripts/README.md): validações e benchmarks no notebook;
+- [Vitis AI](vitis_ai/README.md): extração, inspeção e quantização;
+- [DPU ZCU104](to_zcu/README.md): compilação, execução e sweep;
+- [CPU ARM ZCU104](Arm_zcu104/README.md): ExecuTorch/XNNPACK;
+- [resultados](resultados_zcu104/README.md): relatórios e fontes numéricas.
 
-É necessário ter o **Python 3.10.20** instalado e acessível como `python3.10`. O script não altera o Python do sistema.
+## Modelo e dataset
 
-### 2. Preparar automaticamente o ambiente
+O modelo é a U-Net com encoder MobileNetV2 do HyperSTARCOP. A entrada tem formato `[1, 4, 512, 512]`:
 
-Na raiz do repositório:
+| Canal | Arquivo |
+|---:|---|
+| 0 | `mag1c.tif` |
+| 1 | `TOA_AVIRIS_640nm.tif` |
+| 2 | `TOA_AVIRIS_550nm.tif` |
+| 3 | `TOA_AVIRIS_460nm.tif` |
 
-```bash
-chmod +x setup_environment.sh
-./setup_environment.sh
-```
+A saída é um mapa de logits `[1, 1, 512, 512]`. A máscara usa `sigmoid(logit) > 0,5`.
 
-Sem opções, esse único comando prepara `venv/` e `venv_executorch/`. Para o ambiente principal, ele:
+O `STARCOP_mini` contém 9 imagens de treino e 9 de teste. Os benchmarks usam as nove entradas de `test_mini10.csv`, repetidas quando é necessário medir mais iterações.
 
-- cria o `venv` usando exatamente Python 3.10.20;
-- atualiza `pip`, `setuptools` e `wheel` dentro do ambiente;
-- instala as versões fixadas em `requirements-environment.txt`;
-- baixa e extrai o `STARCOP_mini`, se necessário;
-- valida os CSVs e os arquivos usados pelo modelo;
-- verifica se existem dependências Python quebradas.
+> A quantização INT8 usada neste projeto foi calibrada no notebook com **200 imagens do STARCOP completo**. O `STARCOP_mini` não foi usado na calibração, pois possui somente nove imagens de treino. Para refazer a quantização, obtenha o dataset completo separadamente.
 
-Em resumo:
+## Fluxo 1 — CPU x86/PyTorch
 
-| Etapa | Feita pelo setup? |
-|---|---|
-| Criar ou atualizar o `venv` | Sim |
-| Instalar as bibliotecas nas versões corretas | Sim |
-| Instalar o pacote Python `starcop` | Sim |
-| Baixar, extrair e validar o `STARCOP_mini` | Sim |
-| Criar ambiente separado para ExecuTorch/XNNPACK | Sim |
-| Gerar o arquivo `.pte` | Não: será feito pelo script de exportação |
-| Baixar o checkpoint FP32 | Não é necessário: já está em `model/` |
-| Executar validações e benchmarks | Não: o usuário escolhe qual teste executar |
-| Instalar Vitis AI/VART | Não: depende do ambiente oficial da AMD |
-| Configurar a imagem e o hardware da ZCU104 | Não |
-
-Para apenas conferir uma instalação existente, sem modificar arquivos:
-
-```bash
-./setup_environment.sh --check
-./setup_environment.sh --main-only --check
-./setup_environment.sh --executorch-only --check
-```
-
-Ative o ambiente depois da preparação:
+Ative `venv/` e execute a partir da raiz.
 
 ```bash
 source venv/bin/activate
-```
 
-### 3. Testes rápidos
-
-Carregar o checkpoint original:
-
-```bash
-python scripts/test_load_checkpoint.py
-```
-
-Executar um teste estrutural com entrada artificial:
-
-```bash
-python scripts/verificando_rede_roda.py
-```
-
-Validar uma imagem real e mostrar suas métricas:
-
-```bash
-python scripts/validando_1imagem_rede.py
-```
-
-Validar o subconjunto de teste e gerar visualizações:
-
-```bash
+# validação das nove imagens
 python scripts/validando_rede_minidataset.py
-```
 
-### 4. Benchmark de CPU
+# baseline model-only e end-to-end
+python scripts/benchmark_hyperstarcop_cpu_optimized_v2.py --profile baseline
 
-Executar o baseline sequencial FP32:
-
-```bash
-python scripts/benchmark_hyperstarcop_cpu_optimized_v2.py \
-  --profile baseline
-```
-
-Reproduzir na CPU as configurações selecionadas na campanha da ZCU104:
-
-```bash
+# reproduz na CPU as configurações vencedoras da DPU
 python scripts/benchmark_hyperstarcop_cpu_optimized_v2.py \
   --profile zcu104-comparison
-```
 
-Buscar automaticamente a maior vazão da CPU e confirmar as melhores configurações com três repetições:
-
-```bash
+# busca de máxima vazão da CPU
 python scripts/sweep_hyperstarcop_cpu.py
 ```
 
-Essa busca pode demorar, pois executa dezenas de combinações. Os resultados são gravados em `resultados_cpu/hyperstarcop_cpu_sweep/` e podem ser retomados sem repetir execuções válidas.
+Saídas principais:
 
-## Fluxo Vitis AI
+- `resultados_dataset/metricas_globais.csv`;
+- `resultados_cpu/hyperstarcop_cpu_zcu104_comparison/`;
+- `resultados_cpu/hyperstarcop_cpu_sweep/`.
 
-Os passos abaixo são necessários somente para reconstruir o modelo INT8/XModel. Eles devem ser executados no ambiente Vitis AI compatível; o `setup_environment.sh` prepara o ambiente Python local, mas não instala o toolchain proprietário da AMD.
+## Fluxo 2 — extração e Vitis AI
 
-### 1. Extrair e validar a CNN
+Extração e validação FP32 no ambiente principal:
 
 ```bash
+source venv/bin/activate
 python vitis_ai/scripts/01_comparar_modelo_original_rede_pura.py
 python vitis_ai/scripts/02_exportar_rede_pura.py
 python vitis_ai/scripts/03_validar_rede_standalone.py
 ```
 
-O resultado principal é:
-
-```text
-vitis_ai/float_model/hyperstarcop_network_fp32.pth
-```
-
-### 2. Inspecionar e quantizar
-
-No container Vitis AI:
-
-> **Dataset de calibração:** a quantização INT8 deste projeto foi realizada localmente, no notebook, com **200 imagens do dataset STARCOP completo**. O `STARCOP_mini` não foi usado para calibrar o quantizador, pois contém somente 9 imagens de treino e 9 de teste. Ele foi usado posteriormente para validar a qualidade do modelo quantizado e executar os benchmarks reproduzíveis na CPU e na ZCU104. O `setup_environment.sh` baixa apenas o `STARCOP_mini`; para refazer a calibração é necessário obter separadamente o dataset completo e informar seu caminho em `--dataset_root`.
+Inspeção e quantização devem ser executadas no ambiente Vitis AI compatível:
 
 ```bash
 python vitis_ai/scripts/04_inspecionar_vitis_ai.py
@@ -277,25 +154,11 @@ python vitis_ai/scripts/05_quantizar_int8.py \
   --deploy
 ```
 
-A opção `--calib_samples 200` seleciona 200 amostras do `train.csv` presente no dataset completo indicado por `--dataset_root`. O XModel compilado utilizado na placa está em:
+O XModel validado já está em `vitis_ai/compiled/zcu104_b4096/hyperstarcop.xmodel`. Consulte [vitis_ai/README.md](vitis_ai/README.md) antes de reconstruí-lo.
 
-```text
-vitis_ai/compiled/zcu104_b4096/hyperstarcop.xmodel
-```
+## Fluxo 3 — DPU da ZCU104
 
-## Execução na ZCU104
-
-A placa usada possui dois núcleos `DPUCZDX8G_ISA1_B4096` a 300 MHz e runtime Vitis AI/VART 3.5.0.
-
-Copie para a ZCU104:
-
-- `to_zcu/hyperstarcop_zcu104_optimized.cpp`;
-- `to_zcu/sweep_hyperstarcop_zcu104.cpp`;
-- `to_zcu/build_hyperstarcop_zcu104_optimized.sh`;
-- `vitis_ai/compiled/zcu104_b4096/hyperstarcop.xmodel`;
-- `STARCOP_mini/`.
-
-Na placa, coloque os três arquivos de `to_zcu/` no mesmo diretório e execute:
+Copie `to_zcu/`, o XModel e o `STARCOP_mini` para `/home/root` na placa. Dentro de `to_zcu/`:
 
 ```bash
 chmod +x build_hyperstarcop_zcu104_optimized.sh
@@ -312,7 +175,7 @@ Benchmark básico:
   --csv /home/root/STARCOP_mini/test_mini10.csv
 ```
 
-Busca automática das melhores configurações:
+Busca de desempenho:
 
 ```bash
 ./sweep_hyperstarcop_zcu104 \
@@ -324,67 +187,91 @@ Busca automática das melhores configurações:
   --resume
 ```
 
-Detalhes dos parâmetros e das etapas do sweep estão em [`to_zcu/README_SWEEP.md`](to_zcu/README_SWEEP.md).
+O alvo medido possui 2 × `DPUCZDX8G_ISA1_B4096` a 300 MHz. O fluxo do projeto usa Vitis AI 3.5; o `xdputil` capturado na imagem PetaLinux identifica as bibliotecas VART/XIR instaladas no alvo como 3.0.0.
 
-## Métricas e metodologia
+## Fluxo 4 — CPU ARM da ZCU104
 
-### Qualidade da segmentação
+Exporte o PTE no notebook:
 
-As máscaras são comparadas pixel a pixel com `labelbinary.tif`. São acumulados TP, FP, FN e TN e, a partir deles, calculados precisão, recall, F1, IoU e acurácia. A comparação principal usa as métricas globais: primeiro somam-se os pixels das nove imagens e depois calculam-se os indicadores.
+```bash
+./setup_environment.sh --executorch-only
+source venv_executorch/bin/activate
+python Arm_zcu104/scripts/transformar_compativel_XNNPACK.py
+```
+
+Compile o runner usando o sysroot/runtime já preparados e envie os artefatos:
+
+```bash
+./Arm_zcu104/scripts/build_runner_arm.sh
+
+scp -O Arm_zcu104/runtime/hyperstarcop_arm_executorch \
+  root@IP_DA_PLACA:/home/root/
+scp -O Arm_zcu104/model/hyperstarcop_xnnpack_fp32.pte \
+  root@IP_DA_PLACA:/home/root/
+```
+
+Na placa, o comando completo está em [Arm_zcu104/README.md](Arm_zcu104/README.md). Esse fluxo usa o runtime C++ AArch64; o pacote Python ExecuTorch não é instalado no PetaLinux.
+
+## Métricas
+
+- `model-only`: mede somente o `forward` do modelo;
+- `end-to-end`: inclui leitura dos TIFFs, normalização, filas, inferência, sigmoid e threshold;
+- qualidade: precisão, recall, F1, IoU e acurácia globais;
+- throughput: `itens concluídos / tempo de parede`;
+- latência: tempo individual desde a entrada no pipeline até a conclusão.
+
+Com múltiplos runners, FPS não é o inverso da latência média: várias imagens ficam simultaneamente no pipeline. Use sempre `throughput_fps` para comparar vazão.
+
+## Resultados principais
+
+### Qualidade no STARCOP_mini
+
+| Modelo | Precisão | Recall | F1 | IoU |
+|---|---:|---:|---:|---:|
+| PyTorch FP32 | 89,2663% | 92,0803% | 90,6515% | 82,9014% |
+| ExecuTorch/XNNPACK FP32 | 89,2663% | 92,0803% | 90,6515% | 82,9014% |
+| DPU INT8 | 90,9764% | 90,3945% | 90,6845% | 82,9567% |
 
 ### Desempenho
 
-São reportados dois modos:
+| Plataforma | Baseline MO | Baseline E2E | Melhor MO | Melhor E2E |
+|---|---:|---:|---:|---:|
+| CPU x86 FP32 | 2,072 FPS | 2,010 FPS | 6,076 FPS | 5,305 FPS |
+| CPU ARM FP32, 4 threads | 0,497 FPS | 0,464 FPS | 0,497 FPS | 0,464 FPS |
+| DPU INT8 | 26,472 FPS | 4,821 FPS | 50,876 FPS | 21,673 FPS |
 
-- **`model-only`**: cronometra somente a inferência; a entrada já está carregada e normalizada;
-- **`end-to-end`**: inclui leitura dos quatro TIFFs, normalização, filas, inferência, sigmoid e limiarização.
+Os valores ARM são médias de duas execuções para 4 threads. A DPU `model-only` de 50,876 FPS é uma medição de busca com 90 itens; as melhores medições E2E da DPU e da CPU x86 são médias de três execuções com 500 itens.
 
-O throughput é calculado pela vazão total do sistema:
+### Aceleração relativa
 
-```text
-throughput_fps = imagens concluídas / tempo total de parede
-```
+Cada valor abaixo é calculado dividindo o FPS da primeira plataforma pelo FPS da segunda. Por exemplo, `DPU / CPU ARM = 102,460×` significa que a DPU entregou aproximadamente 102 vezes mais imagens por segundo.
 
-A latência é medida individualmente da chegada da imagem ao término do pipeline. Em configurações concorrentes, diversas imagens são processadas simultaneamente; portanto, a latência média não é simplesmente o inverso do throughput. Todas as medições usam `batch = 1`.
+| Comparação | Baseline MO | Baseline E2E | Melhores MO | Melhores E2E |
+|---|---:|---:|---:|---:|
+| DPU / CPU ARM com 4 threads | 53,312× | 10,392× | **102,460×** | **46,718×** |
+| DPU / CPU x86 | 12,773× | 2,399× | **8,373×** | **4,086×** |
+| CPU x86 / CPU ARM com 4 threads | 4,174× | 4,332× | **12,237×** | **11,435×** |
 
-## Resultados obtidos
+Na comparação de máxima vazão, a DPU chegou a **102,460 vezes o FPS da CPU ARM** em `model-only` e **46,718 vezes** em `end-to-end`. Contra a CPU x86 otimizada, a DPU foi **8,373 vezes** mais rápida em `model-only` e **4,086 vezes** em `end-to-end`.
 
-### Qualidade: FP32, INT8 e artigo
+O ganho obtido ao otimizar cada plataforma foi:
 
-| Referência | Conjunto/recorte | Precisão | Recall | F1 | IoU |
-|---|---|---:|---:|---:|---:|
-| CPU FP32 deste projeto | 9 imagens do `STARCOP_mini` | 89,2663% | 92,0803% | 90,6515% | 82,9014% |
-| ZCU104 INT8 deste projeto | mesmas 9 imagens | 90,9764% | 90,3945% | 90,6845% | 82,9567% |
-| Artigo — HyperSTARCOP `mag1c + RGB` | teste completo, plumas fortes | — | — | 81,96 ± 3,71% | — |
-| Artigo — HyperSTARCOP `mag1c + RGB` | teste completo, plumas fracas | — | — | 43,42 ± 5,72% | — |
+| Plataforma | Melhor MO / baseline MO | Melhor E2E / baseline E2E |
+|---|---:|---:|
+| CPU x86 | 2,932× | 2,640× |
+| CPU ARM, 4 threads / 1 thread | 3,105× | 2,967× |
+| DPU | 1,922× | 4,496× |
 
-A quantização INT8 preservou a qualidade no conjunto avaliado: em relação ao FP32, o F1 variou apenas **+0,033 ponto percentual** e o IoU **+0,055 ponto percentual**.
+As comparações de “melhores configurações” medem a capacidade máxima observada e usam graus diferentes de paralelismo. Para uma comparação estritamente sequencial, use as colunas de baseline.
 
-Os valores do artigo não são uma comparação direta com os 90,68% medidos aqui. O artigo usa o conjunto completo, separa eventos fortes e fracos e apresenta a média de cinco treinamentos; este projeto usa o checkpoint oficial fixo e as nove imagens com pluma do `STARCOP_mini`. A tabela serve para contextualizar o resultado, sem afirmar superioridade sobre o artigo.
+Relatórios:
 
-### Desempenho: CPU versus ZCU104
-
-| Cenário | CPU FP32 | ZCU104 INT8 | Aceleração da ZCU104 |
-|---|---:|---:|---:|
-| Baseline `model-only` | 2,072 FPS | 26,472 FPS | 12,773× |
-| Baseline `end-to-end` | 2,010 FPS | 4,821 FPS | 2,399× |
-| Melhor configuração própria `model-only` | 6,076 FPS | 50,876 FPS | 8,373× |
-| Melhor configuração própria `end-to-end` | 5,305 FPS | 21,673 FPS | 4,086× |
-
-As melhores configurações foram:
-
-- CPU `model-only`: 4 runners × 2 threads, usando 8 núcleos físicos;
-- CPU `end-to-end`: 8 runners × 1 thread, 2 workers de pré-processamento e 8 slots;
-- ZCU104 `model-only`: 4 runners e 1 slot por runner;
-- ZCU104 `end-to-end`: 3 runners, 4 workers de pré-processamento, 16 de pós-processamento e 5 slots por runner.
-
-Na comparação restrita a dois núcleos físicos do notebook, um runner com duas threads alcançou **3,770 FPS** em `model-only` e **3,540 FPS** em `end-to-end`. Isso não torna núcleos CPU e DPU arquiteturalmente equivalentes, mas oferece uma referência adicional para o paralelismo disponível.
-
-Os dados completos, latências, percentis, resultados por imagem e explicação detalhada do cálculo de FPS estão em [`resultados_zcu104/relatorio.md`](resultados_zcu104/relatorio.md).
+- [comparação completa de benchmarks e configurações](resultados_zcu104/comparacao_benchmarks_configuracoes.md);
+- [relatório detalhado CPU x86 × DPU](resultados_zcu104/relatorio.md);
+- [índice dos resultados DPU](resultados_zcu104/README.md).
 
 ## Referências
 
 - V. Růžička et al., [Semantic segmentation of methane plumes with hyperspectral machine learning models](https://pmc.ncbi.nlm.nih.gov/articles/PMC10656523/).
 - [Código oficial STARCOP](https://github.com/spaceml-org/STARCOP).
-- [Checkpoint e modelos STARCOP no Hugging Face](https://huggingface.co/isp-uv-es/starcop).
-- [Repositório deste projeto no GitHub](https://github.com/Thifjj/Projeto_VITISAI_hyperstarcop).
+- [Modelos STARCOP no Hugging Face](https://huggingface.co/isp-uv-es/starcop).

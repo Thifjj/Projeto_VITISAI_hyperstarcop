@@ -1,0 +1,42 @@
+{
+  "model-only": {
+    "config": {
+      "mode": "model-only",
+      "runners": 4,
+      "intra_threads": 2,
+      "pre_workers": 1,
+      "post_workers": 1,
+      "slots_per_runner": 1,
+      "cpu_cores": 8,
+      "pin": false
+    },
+    "total_slots": 4,
+    "throughput_fps_mean": 6.076285039320424,
+    "throughput_fps_median": 6.078720406848554,
+    "throughput_fps_min": 6.059792934012069,
+    "throughput_fps_max": 6.090341777100647,
+    "latency_p99_ms_mean": 800.5884941167761,
+    "repeats": 3,
+    "iterations_per_repeat": 500
+  },
+  "end-to-end": {
+    "config": {
+      "mode": "end-to-end",
+      "runners": 8,
+      "intra_threads": 1,
+      "pre_workers": 2,
+      "post_workers": 1,
+      "slots_per_runner": 1,
+      "cpu_cores": 16,
+      "pin": true
+    },
+    "total_slots": 8,
+    "throughput_fps_mean": 5.304852256026309,
+    "throughput_fps_median": 5.278350963134279,
+    "throughput_fps_min": 5.271454399045184,
+    "throughput_fps_max": 5.364751405899464,
+    "latency_p99_ms_mean": 2585.5498319859785,
+    "repeats": 3,
+    "iterations_per_repeat": 500
+  }
+}
